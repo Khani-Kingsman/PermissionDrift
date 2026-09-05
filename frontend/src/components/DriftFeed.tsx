@@ -10,8 +10,11 @@ import {
   AlertTriangle,
   Info,
   Clock,
+  Sparkles,
+  Loader2,
 } from 'lucide-react';
 import type { DriftEvent, Severity } from '../types/drift';
+import { apiAnalyzeEvent } from '../lib/api';
 
 interface DriftFeedProps {
   events: DriftEvent[];
@@ -56,12 +59,32 @@ function fmt(ts: string) {
 function DriftCard({ event, defaultOpen }: { event: DriftEvent; defaultOpen: boolean }) {
   const [expanded, setExpanded] = useState(defaultOpen);
   const [copied, setCopied] = useState(false);
+  const [aiLoading, setAiLoading] = useState(false);
+  const [aiResult, setAiResult] = useState<any>(null);
   const SevIcon = SEVERITY_ICON[event.severity];
 
   const handleCopy = () => {
     navigator.clipboard.writeText(event.remediation);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
+  };
+
+  const handleRunAI = async () => {
+    setAiLoading(true);
+    try {
+      const res = await apiAnalyzeEvent(event);
+      setAiResult(res);
+    } catch (e: any) {
+      setAiResult({
+        ai_powered: false,
+        error: e.message,
+        forensic_summary: "Error communicating with Gemini AI service.",
+        threat_vector: "Verify if GEMINI_API_KEY is configured in your environment.",
+        recommended_actions: ["Set GEMINI_API_KEY environment variable."]
+      });
+    } finally {
+      setAiLoading(false);
+    }
   };
 
   return (
@@ -160,6 +183,7 @@ function DriftCard({ event, defaultOpen }: { event: DriftEvent; defaultOpen: boo
             </div>
           </div>
 
+          {/* Standard Rule Remediation */}
           <div>
             <div className="flex items-center justify-between mb-1.5">
               <span className="font-geist-mono text-[11px] text-neutral-900 font-semibold flex items-center gap-1.5">
@@ -168,7 +192,7 @@ function DriftCard({ event, defaultOpen }: { event: DriftEvent; defaultOpen: boo
               </span>
               <button
                 onClick={handleCopy}
-                className="text-neutral-500 hover:text-neutral-900 flex items-center gap-1 font-geist-mono text-[11px] transition-colors"
+                className="text-neutral-500 hover:text-neutral-900 flex items-center gap-1 font-geist-mono text-[11px] transition-colors cursor-pointer"
               >
                 {copied ? (
                   <>
@@ -186,6 +210,64 @@ function DriftCard({ event, defaultOpen }: { event: DriftEvent; defaultOpen: boo
             <div className="bg-neutral-900 text-neutral-200 border border-neutral-800 p-3.5 rounded-xl font-geist-mono text-xs overflow-x-auto whitespace-pre-wrap leading-relaxed shadow-sm">
               {event.remediation}
             </div>
+          </div>
+
+          {/* AI Forensic Deep Dive (Powered by Gemini) */}
+          <div className="pt-2 border-t border-neutral-200/60">
+            <div className="flex items-center justify-between mb-2">
+              <span className="font-geist-mono text-[11px] font-bold text-neutral-900 flex items-center gap-1.5">
+                <Sparkles className="w-3.5 h-3.5 text-amber-500" />
+                Gemini AI Deep Threat Analysis
+              </span>
+              <button
+                onClick={handleRunAI}
+                disabled={aiLoading}
+                className="px-3 py-1 rounded-lg bg-neutral-900 hover:bg-neutral-800 text-white font-geist-mono text-xs flex items-center gap-1.5 transition-all shadow-sm cursor-pointer disabled:opacity-50"
+              >
+                {aiLoading ? (
+                  <>
+                    <Loader2 className="w-3 h-3 animate-spin" />
+                    <span>Analyzing anomaly…</span>
+                  </>
+                ) : (
+                  <>
+                    <Sparkles className="w-3 h-3 text-amber-400" />
+                    <span>{aiResult ? 'Re-Analyze with Gemini' : 'Run AI Threat Modeling'}</span>
+                  </>
+                )}
+              </button>
+            </div>
+
+            {aiResult && (
+              <div className="mt-3 p-4 rounded-xl border border-neutral-200 bg-white space-y-3 font-geist-mono text-xs">
+                {aiResult.ai_powered && aiResult.analysis_markdown ? (
+                  <div className="whitespace-pre-line text-neutral-800 leading-relaxed font-sans text-xs">
+                    {aiResult.analysis_markdown}
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    <div className="p-2.5 rounded-lg bg-neutral-50 border border-neutral-200">
+                      <strong className="text-neutral-900 block mb-1">Forensic Analysis:</strong>
+                      <p className="text-neutral-600 font-sans text-xs">{aiResult.forensic_summary}</p>
+                    </div>
+                    <div className="p-2.5 rounded-lg bg-amber-50/50 border border-amber-200">
+                      <strong className="text-amber-900 block mb-1">Threat Vector:</strong>
+                      <p className="text-amber-800 font-sans text-xs">{aiResult.threat_vector}</p>
+                    </div>
+                    {aiResult.recommended_actions && (
+                      <div className="p-2.5 rounded-lg bg-neutral-50 border border-neutral-200">
+                        <strong className="text-neutral-900 block mb-1">Recommended Actions:</strong>
+                        <ul className="list-disc pl-4 space-y-1 text-neutral-600 font-sans text-xs">
+                          {aiResult.recommended_actions.map((act: string, idx: number) => (
+                            <li key={idx}>{act}</li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            )}
           </div>
         </div>
       )}

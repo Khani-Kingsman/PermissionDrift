@@ -53,6 +53,43 @@ export async function apiDeepCheck(ports: number[]) {
   return res.json();
 }
 
+// ── AI Forensic Analysis (Gemini) ─────────────────────────────────────────────
+export async function apiGetAIStatus(): Promise<{ configured: boolean; model: string; provider: string }> {
+  const res = await fetch('/api/ai/status');
+  if (!res.ok) throw new Error('Failed to get AI status');
+  return res.json();
+}
+
+export async function apiSetAIKey(apiKey: string): Promise<{ success: boolean; message: string }> {
+  const res = await fetch('/api/ai/set-key', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ api_key: apiKey }),
+  });
+  if (!res.ok) throw new Error('Failed to configure AI key');
+  return res.json();
+}
+
+export async function apiAnalyzeEvent(event: DriftEvent, apiKey?: string): Promise<any> {
+  const res = await fetch('/api/ai/analyze-event', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ event, api_key: apiKey }),
+  });
+  if (!res.ok) throw new Error('Failed to analyze event');
+  return res.json();
+}
+
+export async function apiGetAIReport(snapshotId?: string, apiKey?: string): Promise<any> {
+  const res = await fetch('/api/ai/report', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ snapshot_id: snapshotId, api_key: apiKey }),
+  });
+  if (!res.ok) throw new Error('Failed to generate AI report');
+  return res.json();
+}
+
 // ── Snapshot → TreeItem adapter ───────────────────────────────────────────────
 export function snapshotToTrees(baseline: FullSnapshot | null, current: FullSnapshot | null): {
   baselineTree: TreeItem[];

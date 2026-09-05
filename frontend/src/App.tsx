@@ -5,6 +5,7 @@ import { MondayVsFriday } from './components/MondayVsFriday';
 import { DriftFeed } from './components/DriftFeed';
 import { SurfaceRadar } from './components/SurfaceRadar';
 import { DeepCheckModal } from './components/DeepCheckModal';
+import { AIReportModal } from './components/AIReportModal';
 import {
   apiScan,
   apiPollJob,
@@ -35,6 +36,7 @@ import {
   Shield,
   Layers,
   Search,
+  Sparkles,
 } from 'lucide-react';
 
 function fmt(ts: string) {
@@ -71,6 +73,7 @@ export default function App() {
   const [isScanning, setIsScanning] = useState(false);
   const [scanProgress, setScanProgress] = useState(0);
   const [deepCheckOpen, setDeepCheckOpen] = useState(false);
+  const [aiModalOpen, setAiModalOpen] = useState(false);
   const [error, setError] = useState('');
   const [host, setHost] = useState('');
   const [lastScanAt, setLastScanAt] = useState<string | null>(null);
@@ -217,6 +220,14 @@ export default function App() {
 
           <div className="flex items-center space-x-3">
             <button
+              onClick={() => setAiModalOpen(true)}
+              className="px-3.5 py-1.5 rounded-lg border border-neutral-300 bg-white hover:bg-neutral-50 text-neutral-900 font-geist-mono text-xs flex items-center gap-2 transition-all cursor-pointer shadow-sm font-medium"
+            >
+              <Sparkles className="w-3.5 h-3.5 text-amber-500" />
+              <span>AI Threat Report</span>
+            </button>
+
+            <button
               onClick={() => setDeepCheckOpen(true)}
               className="px-3.5 py-1.5 rounded-lg border border-amber-300 bg-amber-50 text-amber-800 hover:bg-amber-100/70 font-geist-mono text-xs flex items-center gap-2 transition-all cursor-pointer shadow-sm"
             >
@@ -271,12 +282,19 @@ export default function App() {
             <p className="text-base sm:text-lg leading-relaxed text-neutral-600 font-normal">
               Continuous baseline auditing for developer machines. Snapshots file handles, Docker pipes, AWS/Kube tokens, and flags unannounced permission widening with instant remediation.
             </p>
-            <div className="flex items-center gap-4">
+            <div className="flex items-center gap-4 flex-wrap">
               <button
                 onClick={scrollToTelemetry}
                 className="group flex items-center gap-2 text-xs font-bold tracking-widest uppercase border-b-2 border-black pb-1 hover:text-neutral-600 hover:border-neutral-400 transition-all cursor-pointer font-geist-mono"
               >
                 Inspect Live Posture <span className="group-hover:translate-y-0.5 transition-transform duration-300">↓</span>
+              </button>
+              <button
+                onClick={() => setAiModalOpen(true)}
+                className="inline-flex items-center gap-1.5 text-xs font-geist-mono uppercase tracking-wider font-semibold text-amber-700 hover:text-amber-900 transition-colors cursor-pointer"
+              >
+                <Sparkles className="w-3.5 h-3.5 text-amber-500" />
+                <span>AI Forensic Report →</span>
               </button>
               <button
                 onClick={handleScan}
@@ -427,6 +445,13 @@ export default function App() {
 
       {/* Deep Probe Modal */}
       <DeepCheckModal isOpen={deepCheckOpen} onClose={() => setDeepCheckOpen(false)} />
+
+      {/* AI Cyber-Forensic Posture Report Modal */}
+      <AIReportModal
+        isOpen={aiModalOpen}
+        onClose={() => setAiModalOpen(false)}
+        snapshotId={selectedId}
+      />
     </div>
   );
 }

@@ -101,9 +101,43 @@ Open **[http://127.0.0.1:5000](http://127.0.0.1:5000)** in your browser.
 
 - **Blast Radius Score**: A 0–100 weighted index trending over time.
 - **Current Posture Tree**: Expandable breakdown of credentials, Docker pipe, extensions, AI agents/MCPs, and local ports.
-- **Drift Feed**: Severity-coded cards with expandable "Fix it" remediation recipes.
+- **Drift Feed with AI Deep Dive**: Severity-coded cards with expandable Gemini-powered forensic analysis and remediation recipes.
 - **Timeline Diff ("Monday vs Friday")**: Compare any two historical snapshots side by side.
 - **Deep Check Button**: Visually distinct, opt-in active verification for local listening ports.
+- **AI Cyber-Forensic Reports**: One-click executive posture assessments and threat vectors synthesized by Gemini.
+
+---
+
+## 🧠 AI-Powered Cyber-Forensic Analysis (Google Gemini)
+
+PermissionDrift includes optional deep threat analysis powered by the **Google Gemini API** (`gemini-2.5-flash`).
+
+### What AI Threat Modeling Adds
+1. **In-Depth Anomaly Analysis**: When a process touches a sensitive handle or opens a loopback listener, click **"Run AI Threat Modeling"** to get a full forensic breakdown of Win32 handle mechanics, process intentions, and abuse potential.
+2. **Plain-English Impact Statements**: Plain, uncompromising developer explanations of what credentials or infrastructure could be compromised.
+3. **Actionable Remediation Commands**: Generates tailored Windows PowerShell and CLI commands to inspect, sandbox, or revoke unauthorized access immediately.
+4. **Executive Posture Reports**: Click **"AI Threat Report"** in the top navigation bar to generate an executive cybersecurity assessment across all credentials, open ports, and running process trees.
+
+### Configuring Your Gemini API Key
+
+Set the `GEMINI_API_KEY` in your environment or local configuration:
+
+```powershell
+# In PowerShell:
+$env:GEMINI_API_KEY="your_api_key_here"
+
+# Or in Command Prompt:
+set GEMINI_API_KEY=your_api_key_here
+```
+
+Alternatively, create a `.env` file in the project root:
+```ini
+GEMINI_API_KEY=your_api_key_here
+```
+
+> [!NOTE]
+> `.env` is strictly ignored in `.gitignore`. Your API keys are **NEVER** committed to version control or pushed to GitHub.
+> If no API key is set, PermissionDrift automatically falls back to deterministic rule-based forensic analysis so the tool always remains 100% functional.
 
 ---
 

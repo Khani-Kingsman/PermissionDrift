@@ -4,6 +4,11 @@ snapshots.db-journal
 test_snapshots.db
 permissiondrift.log
 
+# Environment & Secret Keys
+.env
+.env.*
+*.env
+
 # Python bytecode & cache
 __pycache__/
 *.py[cod]

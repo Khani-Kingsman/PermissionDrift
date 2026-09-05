@@ -207,6 +207,85 @@ def manual_deep_check():
     return jsonify({"ports_checked": ports, "findings": findings})
 
 
+# ── AI Forensic Analysis (Powered by Google Gemini API) ───────────────────────
+@app.route("/api/ai/status", methods=["GET"])
+@app.route("/ai/status", methods=["GET"])
+def get_ai_status():
+    from backend.ai_analyzer import is_ai_configured
+    configured = is_ai_configured()
+    return jsonify({
+        "configured": configured,
+        "model": "gemini-2.5-flash",
+        "provider": "google-genai"
+    })
+
+
+@app.route("/api/ai/set-key", methods=["POST"])
+@app.route("/ai/set-key", methods=["POST"])
+def set_ai_key():
+    data = request.get_json(silent=True) or {}
+    key = data.get("api_key", "").strip()
+    if not key:
+        return jsonify({"error": "No api_key provided."}), 400
+
+    os.environ["GEMINI_API_KEY"] = key
+    env_path = PROJECT_ROOT / ".env"
+    try:
+        with open(env_path, "w", encoding="utf-8") as f:
+            f.write(f"GEMINI_API_KEY={key}\n")
+    except Exception as e:
+        logger.warning(f"Could not save .env: {e}")
+
+    return jsonify({"success": True, "message": "Gemini API key configured successfully."})
+
+
+@app.route("/api/ai/analyze-event", methods=["POST"])
+@app.route("/ai/analyze-event", methods=["POST"])
+def analyze_event_ai():
+    from backend.ai_analyzer import analyze_drift_event
+    data = request.get_json(silent=True) or {}
+    event = data.get("event")
+    if not event:
+        return jsonify({"error": "Drift event object required in body."}), 400
+
+    explicit_key = data.get("api_key")
+    latest = get_latest_snapshot()
+    context = {"host": latest.get("host", "Local Machine")} if latest else {}
+
+    result = analyze_drift_event(event, context=context, explicit_key=explicit_key)
+    return jsonify(result)
+
+
+@app.route("/api/ai/report", methods=["POST"])
+@app.route("/ai/report", methods=["POST"])
+def generate_report_ai():
+    from backend.ai_analyzer import generate_posture_report
+    data = request.get_json(silent=True) or {}
+    explicit_key = data.get("api_key")
+    snapshot_id = data.get("snapshot_id")
+
+    if snapshot_id:
+        target_snap = get_snapshot(snapshot_id)
+    else:
+        target_snap = get_latest_snapshot()
+
+    if not target_snap:
+        return jsonify({"error": "No snapshot available to analyze."}), 404
+
+    baseline = get_baseline_snapshot()
+    events = []
+    if baseline:
+        events, _ = diff_snapshots(baseline, target_snap)
+
+    result = generate_posture_report(
+        snapshot=target_snap,
+        baseline=baseline,
+        drift_events=events,
+        explicit_key=explicit_key
+    )
+    return jsonify(result)
+
+
 @app.route("/api/health", methods=["GET"])
 def health_check():
     return jsonify({"status": "ok", "service": "PermissionDrift"})
