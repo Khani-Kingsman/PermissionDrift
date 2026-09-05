@@ -125,7 +125,21 @@ def check_docker_named_pipe() -> Dict[str, Any]:
     }
 
     try:
-        handle = ctypes.windll.kernel32.CreateFileW(
+        k32 = ctypes.windll.kernel32
+        k32.CreateFileW.argtypes = [
+            ctypes.c_wchar_p,
+            ctypes.c_uint32,
+            ctypes.c_uint32,
+            ctypes.c_void_p,
+            ctypes.c_uint32,
+            ctypes.c_uint32,
+            ctypes.c_void_p
+        ]
+        k32.CreateFileW.restype = ctypes.c_void_p
+        k32.CloseHandle.argtypes = [ctypes.c_void_p]
+        k32.CloseHandle.restype = ctypes.c_bool
+
+        handle = k32.CreateFileW(
             pipe_path,
             GENERIC_READ,
             0,
@@ -135,13 +149,14 @@ def check_docker_named_pipe() -> Dict[str, Any]:
             None
         )
 
-        if handle != INVALID_HANDLE_VALUE:
-            ctypes.windll.kernel32.CloseHandle(handle)
+        invalid_handle = ctypes.c_void_p(-1).value
+        if handle and handle != invalid_handle:
+            k32.CloseHandle(handle)
             result["exists"] = True
             result["status"] = "active"
             logger.info("Docker named pipe detected: handle acquired.")
         else:
-            last_err = ctypes.windll.kernel32.GetLastError()
+            last_err = k32.GetLastError()
             if last_err == ERROR_PIPE_BUSY:
                 result["exists"] = True
                 result["status"] = "busy_active"

@@ -1,4 +1,4 @@
-﻿# Contributing to PermissionDrift
+# Contributing to PermissionDrift
 
 First off, thank you for considering contributing to PermissionDrift! It is through developers and security researchers like you that open-source security software stays resilient and trustworthy.
 

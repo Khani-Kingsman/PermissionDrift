@@ -1,4 +1,4 @@
-﻿"""
+"""
 Windows Toast Notification Dispatcher for PermissionDrift.
 Features:
 1. Native Windows Runtime (WinRT) Toast with interactive URL protocol click redirect.
@@ -29,8 +29,14 @@ def is_user_gaming_or_busy() -> bool:
     QUNS_ACCEPTS_NOTIFICATIONS = 5 (Standard desktop, safe to notify)
     """
     try:
+        shell32 = getattr(ctypes.windll, "shell32", None)
+        if not shell32 or not hasattr(shell32, "SHQueryUserNotificationState"):
+            return False
+        fn = shell32.SHQueryUserNotificationState
+        fn.argtypes = [ctypes.POINTER(ctypes.c_int)]
+        fn.restype = ctypes.c_long
         state = ctypes.c_int()
-        res = ctypes.windll.shell32.SHQueryUserNotificationState(ctypes.byref(state))
+        res = fn(ctypes.byref(state))
         if res == 0:
             # 5 = QUNS_ACCEPTS_NOTIFICATIONS. Any other state (2=busy, 3=D3D full screen, 4=presentation) means gaming/busy.
             return state.value != 5
@@ -88,13 +94,12 @@ def _queue_worker():
     """Background monitor that drains enqueued notifications once gaming/busy state ends."""
     while True:
         time.sleep(5)
+        item_to_send = None
         with _QUEUE_LOCK:
-            if not _PENDING_QUEUE:
-                continue
-            # If user has returned to desktop and is no longer gaming
-            if not is_user_gaming_or_busy():
-                item = _PENDING_QUEUE.pop(0)
-                _dispatch_toast_now(item["title"], item["message"], item["url"])
+            if _PENDING_QUEUE and not is_user_gaming_or_busy():
+                item_to_send = _PENDING_QUEUE.pop(0)
+        if item_to_send:
+            _dispatch_toast_now(item_to_send["title"], item_to_send["message"], item_to_send["url"])
 
 def notify_drift_event(
     title: str,

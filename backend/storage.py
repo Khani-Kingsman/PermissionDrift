@@ -22,6 +22,11 @@ def get_connection(db_path: Optional[Path] = None) -> sqlite3.Connection:
     path = db_path or DB_PATH
     conn = sqlite3.connect(str(path), timeout=10.0)
     conn.row_factory = sqlite3.Row
+    try:
+        conn.execute("PRAGMA journal_mode=WAL;")
+        conn.execute("PRAGMA synchronous=NORMAL;")
+    except Exception:
+        pass
     return conn
 
 

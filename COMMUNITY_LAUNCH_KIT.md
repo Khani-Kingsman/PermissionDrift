@@ -1,4 +1,4 @@
-﻿# PermissionDrift: Open-Source Community Launch Kit 🚀
+# PermissionDrift: Open-Source Community Launch Kit 🚀
 
 > Everything you need to launch, distribute, and grow **PermissionDrift** across Hacker News, Reddit, Twitter/X, Product Hunt, and security newsletters.
 

@@ -1,4 +1,4 @@
-﻿"""
+"""
 PermissionDrift Silent Daemon Launcher.
 Runs the Flask API and continuous Security Engine in the background with zero terminal window.
 """

@@ -1,4 +1,4 @@
-﻿import unittest
+import unittest
 from backend.engine import SecurityEngine
 from backend.autostart import is_autostart_enabled, get_launch_command
 

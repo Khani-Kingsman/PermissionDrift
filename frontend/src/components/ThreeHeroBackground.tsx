@@ -30,17 +30,23 @@ export const ThreeHeroBackground: React.FC<ThreeHeroBackgroundProps> = ({ theme 
     const camera = new THREE.PerspectiveCamera(75, width / height, 0.1, 1000);
     camera.position.z = 32;
 
-    const renderer = new THREE.WebGLRenderer({
-      antialias: false,
-      alpha: true,
-      powerPreference: 'low-power',
-      precision: 'mediump'
-    });
-    rendererRef.current = renderer;
-    renderer.setSize(width, height);
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.25));
-    renderer.setClearColor(isBlack ? 0x07080c : 0xffffff, 1);
-    container.appendChild(renderer.domElement);
+    let renderer: THREE.WebGLRenderer;
+    try {
+      renderer = new THREE.WebGLRenderer({
+        antialias: false,
+        alpha: true,
+        powerPreference: 'low-power',
+        precision: 'mediump'
+      });
+      rendererRef.current = renderer;
+      renderer.setSize(width, height);
+      renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.25));
+      renderer.setClearColor(isBlack ? 0x07080c : 0xffffff, 1);
+      container.appendChild(renderer.domElement);
+    } catch (webglErr) {
+      console.warn("WebGL initialization unavailable, falling back gracefully:", webglErr);
+      return;
+    }
 
     // Main Geometry: Wireframe Torus Knot
     // MeshBasicMaterial ensures pure white lines in dark mode that are NOT darkened by scene lighting

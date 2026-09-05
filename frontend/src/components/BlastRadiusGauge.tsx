@@ -45,7 +45,8 @@ export const BlastRadiusGauge: React.FC<GaugeProps> = ({ score, prevScore, score
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas || scoreHistory.length < 2) return;
-    const ctx = canvas.getContext('2d')!;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
     const W = canvas.width,
       H = canvas.height;
     ctx.clearRect(0, 0, W, H);
