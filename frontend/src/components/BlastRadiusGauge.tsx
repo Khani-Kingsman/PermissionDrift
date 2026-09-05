@@ -5,35 +5,37 @@ interface GaugeProps {
   score: number;
   prevScore: number;
   scoreHistory: number[];
+  theme?: 'black' | 'white';
 }
 
-const getScheme = (val: number) => {
+const getScheme = (val: number, isBlack: boolean) => {
   if (val >= 70)
     return {
-      stroke: '#dc2626',
-      text: 'text-red-600',
-      badge: 'bg-red-50 border-red-200 text-red-700',
+      stroke: '#ef4444',
+      text: isBlack ? 'text-red-400' : 'text-red-600',
+      badge: isBlack ? 'bg-red-950/40 border-red-800/60 text-red-300' : 'bg-red-50 border-red-200 text-red-700',
       label: 'CRITICAL EXPOSURE',
     };
   if (val >= 40)
     return {
-      stroke: '#d97706',
-      text: 'text-amber-600',
-      badge: 'bg-amber-50 border-amber-200 text-amber-700',
+      stroke: '#f59e0b',
+      text: isBlack ? 'text-amber-400' : 'text-amber-600',
+      badge: isBlack ? 'bg-amber-950/40 border-amber-800/60 text-amber-300' : 'bg-amber-50 border-amber-200 text-amber-700',
       label: 'ELEVATED RISK',
     };
   return {
-    stroke: '#16a34a',
-    text: 'text-emerald-600',
-    badge: 'bg-emerald-50 border-emerald-200 text-emerald-700',
+    stroke: '#10b981',
+    text: isBlack ? 'text-emerald-400' : 'text-emerald-600',
+    badge: isBlack ? 'bg-emerald-950/40 border-emerald-800/60 text-emerald-300' : 'bg-emerald-50 border-emerald-200 text-emerald-700',
     label: 'NOMINAL POSTURE',
   };
 };
 
-export const BlastRadiusGauge: React.FC<GaugeProps> = ({ score, prevScore, scoreHistory }) => {
+export const BlastRadiusGauge: React.FC<GaugeProps> = ({ score, prevScore, scoreHistory, theme = 'white' }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const isBlack = theme === 'black';
   const clampedScore = Math.min(100, Math.max(0, score));
-  const scheme = getScheme(clampedScore);
+  const scheme = getScheme(clampedScore, isBlack);
   const delta = score - prevScore;
 
   const radius = 54;
@@ -78,15 +80,23 @@ export const BlastRadiusGauge: React.FC<GaugeProps> = ({ score, prevScore, score
   }, [scoreHistory, scheme.stroke]);
 
   return (
-    <div className="relative rounded-2xl border border-neutral-200/80 bg-white/75 backdrop-blur-md p-6 shadow-sm hover:shadow-md transition-all">
+    <div className={`relative rounded-2xl border backdrop-blur-md p-6 transition-all ${
+      isBlack
+        ? 'border-neutral-800/80 bg-[#0f1219]/85 text-white shadow-[0_4px_24px_rgba(0,0,0,0.5)]'
+        : 'border-neutral-200/80 bg-white/75 text-neutral-900 shadow-sm hover:shadow-md'
+    }`}>
       <div className="flex items-start justify-between">
         <div className="flex-1 min-w-0 pr-3">
-          <span className="font-geist-mono text-[11px] uppercase tracking-widest text-neutral-400 flex items-center gap-1.5 font-medium">
+          <span className={`font-geist-mono text-[11px] uppercase tracking-widest flex items-center gap-1.5 font-medium ${
+            isBlack ? 'text-neutral-400' : 'text-neutral-400'
+          }`}>
             <AlertTriangle className="w-3.5 h-3.5 text-amber-500" />
             Active Blast Radius
           </span>
-          <h2 className="text-2xl font-bold text-neutral-900 mt-1 tracking-tight">Machine Posture</h2>
-          <p className="font-geist-mono text-xs text-neutral-500 mt-1 leading-relaxed">
+          <h2 className={`text-2xl font-bold mt-1 tracking-tight ${isBlack ? 'text-white' : 'text-neutral-900'}`}>
+            Machine Posture
+          </h2>
+          <p className={`font-geist-mono text-xs mt-1 leading-relaxed ${isBlack ? 'text-neutral-400' : 'text-neutral-500'}`}>
             Privilege escalation exposure score calculated from live handles & credentials.
           </p>
 
@@ -100,7 +110,14 @@ export const BlastRadiusGauge: React.FC<GaugeProps> = ({ score, prevScore, score
         {/* SVG Circular Ring */}
         <div className="relative flex-shrink-0 flex items-center justify-center">
           <svg className="w-32 h-32 -rotate-90 transform">
-            <circle cx="64" cy="64" r={radius} stroke="#e5e7eb" strokeWidth="8" fill="transparent" />
+            <circle
+              cx="64"
+              cy="64"
+              r={radius}
+              stroke={isBlack ? '#27272a' : '#e5e7eb'}
+              strokeWidth="8"
+              fill="transparent"
+            />
             <circle
               cx="64"
               cy="64"
@@ -118,16 +135,18 @@ export const BlastRadiusGauge: React.FC<GaugeProps> = ({ score, prevScore, score
             <span className={`font-geist-mono text-3xl font-bold tracking-tight ${scheme.text}`}>
               {clampedScore}
             </span>
-            <span className="font-geist-mono text-[9px] uppercase tracking-wider text-neutral-400">/ 100</span>
+            <span className={`font-geist-mono text-[9px] uppercase tracking-wider ${isBlack ? 'text-neutral-500' : 'text-neutral-400'}`}>
+              / 100
+            </span>
           </div>
         </div>
       </div>
 
       {/* Trajectory */}
-      <div className="mt-5 pt-4 border-t border-neutral-100 flex items-center justify-between">
-        <div className="flex items-center gap-2 font-geist-mono text-xs text-neutral-600">
+      <div className={`mt-5 pt-4 border-t flex items-center justify-between ${isBlack ? 'border-neutral-800/80' : 'border-neutral-100'}`}>
+        <div className={`flex items-center gap-2 font-geist-mono text-xs ${isBlack ? 'text-neutral-300' : 'text-neutral-600'}`}>
           <span>Drift trajectory:</span>
-          <span className="text-neutral-900 font-semibold">{prevScore}</span>
+          <span className={`font-semibold ${isBlack ? 'text-white' : 'text-neutral-900'}`}>{prevScore}</span>
           <span className="text-neutral-400">→</span>
           <span className={`font-bold ${scheme.text}`}>{score}</span>
         </div>
@@ -149,7 +168,9 @@ export const BlastRadiusGauge: React.FC<GaugeProps> = ({ score, prevScore, score
       {/* Sparkline Canvas */}
       {scoreHistory.length >= 2 && (
         <div className="mt-3">
-          <div className="font-geist-mono text-[10px] text-neutral-400 mb-1">historical scans →</div>
+          <div className={`font-geist-mono text-[10px] mb-1 ${isBlack ? 'text-neutral-500' : 'text-neutral-400'}`}>
+            historical scans →
+          </div>
           <canvas ref={canvasRef} width={260} height={32} className="w-full" />
         </div>
       )}

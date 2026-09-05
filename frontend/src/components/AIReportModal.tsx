@@ -17,13 +17,16 @@ interface AIReportModalProps {
   isOpen: boolean;
   onClose: () => void;
   snapshotId?: string | null;
+  theme?: 'black' | 'white';
 }
 
 export const AIReportModal: React.FC<AIReportModalProps> = ({
   isOpen,
   onClose,
   snapshotId,
+  theme = 'white',
 }) => {
+  const isBlack = theme === 'black';
   const [configured, setConfigured] = useState<boolean>(false);
   const [apiKeyInput, setApiKeyInput] = useState<string>('');
   const [savingKey, setSavingKey] = useState<boolean>(false);
@@ -91,29 +94,41 @@ export const AIReportModal: React.FC<AIReportModalProps> = ({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
-      <div className="w-full max-w-2xl rounded-2xl border border-neutral-200 bg-white shadow-2xl relative flex flex-col max-h-[90vh] overflow-hidden">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4">
+      <div className={`w-full max-w-2xl rounded-2xl border shadow-2xl relative flex flex-col max-h-[90vh] overflow-hidden ${
+        isBlack ? 'border-neutral-800 bg-[#0e1219] text-white' : 'border-neutral-200 bg-white text-neutral-900'
+      }`}>
         {/* Modal Header */}
-        <div className="flex items-center justify-between p-6 border-b border-neutral-100 bg-white">
+        <div className={`flex items-center justify-between p-6 border-b ${
+          isBlack ? 'border-neutral-800 bg-[#0e1219]' : 'border-neutral-100 bg-white'
+        }`}>
           <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-xl bg-neutral-900 text-amber-400 flex items-center justify-center shadow-sm">
+            <div className={`w-9 h-9 rounded-xl flex items-center justify-center shadow-sm ${
+              isBlack ? 'bg-neutral-800 text-amber-400 border border-neutral-700' : 'bg-neutral-900 text-amber-400'
+            }`}>
               <Sparkles className="w-5 h-5" />
             </div>
             <div>
-              <h3 className="text-lg font-bold text-neutral-900 tracking-tight flex items-center gap-2">
+              <h3 className={`text-lg font-bold tracking-tight flex items-center gap-2 ${
+                isBlack ? 'text-white' : 'text-neutral-900'
+              }`}>
                 Gemini AI Cyber-Forensic Posture Report
-                <span className="text-[10px] uppercase font-geist-mono px-2 py-0.5 rounded-full bg-neutral-100 text-neutral-600 border border-neutral-200 font-normal">
-                  gemini-2.5-flash
+                <span className={`text-[10px] uppercase font-geist-mono px-2 py-0.5 rounded-full border font-normal ${
+                  isBlack
+                    ? 'bg-neutral-800 text-neutral-300 border-neutral-700'
+                    : 'bg-neutral-100 text-neutral-600 border-neutral-200'
+                }`}>
+                  gemini-3.7-flash
                 </span>
               </h3>
-              <p className="font-geist-mono text-xs text-neutral-500">
+              <p className={`font-geist-mono text-xs ${isBlack ? 'text-neutral-400' : 'text-neutral-500'}`}>
                 In-depth automated threat modeling &amp; security architecture analysis
               </p>
             </div>
           </div>
           <button
             onClick={onClose}
-            className="text-neutral-400 hover:text-neutral-900 p-1 transition-colors"
+            className={`p-1 transition-colors ${isBlack ? 'text-neutral-400 hover:text-white' : 'text-neutral-400 hover:text-neutral-900'}`}
           >
             <X className="w-5 h-5" />
           </button>
@@ -123,12 +138,16 @@ export const AIReportModal: React.FC<AIReportModalProps> = ({
         <div className="flex-1 overflow-y-auto p-6 space-y-6">
           {/* Key Configuration Banner if not configured */}
           {!configured && (
-            <div className="p-4 rounded-xl border border-amber-200 bg-amber-50/70 space-y-3">
-              <div className="flex items-center gap-2 text-xs font-semibold text-amber-900 font-geist-mono">
-                <Key className="w-4 h-4 text-amber-600" />
+            <div className={`p-4 rounded-xl border space-y-3 ${
+              isBlack
+                ? 'border-amber-800/60 bg-amber-950/30 text-amber-200'
+                : 'border-amber-200 bg-amber-50/70 text-amber-900'
+            }`}>
+              <div className="flex items-center gap-2 text-xs font-semibold font-geist-mono">
+                <Key className="w-4 h-4 text-amber-500" />
                 <span>Configure Google Gemini API Key</span>
               </div>
-              <p className="text-xs text-amber-800 leading-relaxed font-geist-mono">
+              <p className={`text-xs leading-relaxed font-geist-mono ${isBlack ? 'text-amber-300/90' : 'text-amber-800'}`}>
                 Enter your Google Gemini API key to activate deep neural threat analysis.
                 Your key will be stored securely in your local environment (.env ignored by git) and will never be shared or pushed to GitHub.
               </p>
@@ -138,12 +157,20 @@ export const AIReportModal: React.FC<AIReportModalProps> = ({
                   placeholder="Paste GEMINI_API_KEY here..."
                   value={apiKeyInput}
                   onChange={(e) => setApiKeyInput(e.target.value)}
-                  className="flex-1 font-geist-mono text-xs px-3.5 py-2 rounded-xl bg-white border border-neutral-300 text-neutral-900 placeholder-neutral-400 outline-none focus:border-black"
+                  className={`flex-1 font-geist-mono text-xs px-3.5 py-2 rounded-xl outline-none ${
+                    isBlack
+                      ? 'bg-[#151922] border border-neutral-700 text-white placeholder-neutral-500 focus:border-white'
+                      : 'bg-white border border-neutral-300 text-neutral-900 placeholder-neutral-400 focus:border-black'
+                  }`}
                 />
                 <button
                   onClick={handleSaveKey}
                   disabled={savingKey || !apiKeyInput.trim()}
-                  className="px-4 py-2 rounded-xl bg-black text-white font-medium text-xs hover:bg-neutral-800 disabled:opacity-50 transition-all font-geist-mono cursor-pointer"
+                  className={`px-4 py-2 rounded-xl font-medium text-xs disabled:opacity-50 transition-all font-geist-mono cursor-pointer ${
+                    isBlack
+                      ? 'bg-white text-black hover:bg-neutral-200 font-semibold'
+                      : 'bg-black text-white hover:bg-neutral-800'
+                  }`}
                 >
                   {savingKey ? 'Saving...' : 'Activate AI'}
                 </button>
@@ -161,8 +188,8 @@ export const AIReportModal: React.FC<AIReportModalProps> = ({
           {/* Loading Spinner */}
           {loadingReport && (
             <div className="flex flex-col items-center justify-center py-16 gap-3 text-center">
-              <Loader2 className="w-8 h-8 text-neutral-800 animate-spin" />
-              <p className="font-geist-mono text-xs text-neutral-600 font-medium">
+              <Loader2 className={`w-8 h-8 animate-spin ${isBlack ? 'text-white' : 'text-neutral-800'}`} />
+              <p className={`font-geist-mono text-xs font-medium ${isBlack ? 'text-neutral-300' : 'text-neutral-600'}`}>
                 Gemini is synthesizing forensic audit data across process handles, tokens, and loopback sockets...
               </p>
             </div>
@@ -171,19 +198,25 @@ export const AIReportModal: React.FC<AIReportModalProps> = ({
           {/* Report Output */}
           {!loadingReport && report && (
             <div className="space-y-4">
-              <div className="flex items-center justify-between pb-3 border-b border-neutral-100 font-geist-mono text-xs">
-                <div className="flex items-center gap-2 text-emerald-700 font-semibold">
+              <div className={`flex items-center justify-between pb-3 border-b font-geist-mono text-xs ${
+                isBlack ? 'border-neutral-800' : 'border-neutral-100'
+              }`}>
+                <div className="flex items-center gap-2 text-emerald-500 font-semibold">
                   <CheckCircle2 className="w-4 h-4" />
                   <span>Report Generated for {report.host || 'Local Host'}</span>
                 </div>
                 <button
                   onClick={copyReport}
-                  className="flex items-center gap-1.5 px-3 py-1 rounded-lg border border-neutral-200 hover:bg-neutral-100 text-neutral-600 hover:text-black transition-all"
+                  className={`flex items-center gap-1.5 px-3 py-1 rounded-lg border transition-all cursor-pointer ${
+                    isBlack
+                      ? 'border-neutral-700 bg-neutral-800/80 text-neutral-300 hover:text-white hover:bg-neutral-700'
+                      : 'border-neutral-200 hover:bg-neutral-100 text-neutral-600 hover:text-black'
+                  }`}
                 >
                   {copied ? (
                     <>
-                      <Check className="w-3.5 h-3.5 text-emerald-600" />
-                      <span className="text-emerald-600 font-medium">Copied</span>
+                      <Check className="w-3.5 h-3.5 text-emerald-500" />
+                      <span className="text-emerald-500 font-medium">Copied</span>
                     </>
                   ) : (
                     <>
@@ -195,11 +228,19 @@ export const AIReportModal: React.FC<AIReportModalProps> = ({
               </div>
 
               {report.report_markdown ? (
-                <div className="prose prose-neutral max-w-none text-xs leading-relaxed font-sans bg-neutral-50/60 p-5 rounded-2xl border border-neutral-200 whitespace-pre-line">
+                <div className={`max-w-none text-xs leading-relaxed font-sans p-5 rounded-2xl border whitespace-pre-line ${
+                  isBlack
+                    ? 'bg-[#141822] text-neutral-200 border-neutral-800'
+                    : 'bg-neutral-50/60 text-neutral-800 border-neutral-200'
+                }`}>
                   {report.report_markdown}
                 </div>
               ) : (
-                <div className="p-5 rounded-2xl border border-neutral-200 bg-neutral-50 text-xs text-neutral-700 space-y-2 font-geist-mono">
+                <div className={`p-5 rounded-2xl border text-xs space-y-2 font-geist-mono ${
+                  isBlack
+                    ? 'bg-[#141822] text-neutral-300 border-neutral-800'
+                    : 'bg-neutral-50 text-neutral-700 border-neutral-200'
+                }`}>
                   <p>{report.summary || report.message}</p>
                 </div>
               )}
@@ -208,8 +249,10 @@ export const AIReportModal: React.FC<AIReportModalProps> = ({
         </div>
 
         {/* Modal Footer */}
-        <div className="p-4 border-t border-neutral-100 bg-neutral-50/60 flex items-center justify-between">
-          <span className="font-geist-mono text-xs text-neutral-500">
+        <div className={`p-4 border-t flex items-center justify-between ${
+          isBlack ? 'border-neutral-800 bg-[#0c0f15]' : 'border-neutral-100 bg-neutral-50/60'
+        }`}>
+          <span className={`font-geist-mono text-xs ${isBlack ? 'text-neutral-500' : 'text-neutral-500'}`}>
             PermissionDrift AI Engine · Zero raw secrets transmitted
           </span>
           <div className="flex items-center gap-2">
@@ -217,14 +260,22 @@ export const AIReportModal: React.FC<AIReportModalProps> = ({
               <button
                 onClick={generateReport}
                 disabled={loadingReport}
-                className="px-4 py-2 rounded-xl border border-neutral-200 hover:bg-white text-neutral-800 font-geist-mono text-xs font-medium transition-colors"
+                className={`px-4 py-2 rounded-xl border font-geist-mono text-xs font-medium transition-colors cursor-pointer ${
+                  isBlack
+                    ? 'border-neutral-700 bg-neutral-800 text-neutral-200 hover:bg-neutral-700'
+                    : 'border-neutral-200 bg-white hover:bg-neutral-100 text-neutral-800'
+                }`}
               >
                 Regenerate
               </button>
             )}
             <button
               onClick={onClose}
-              className="px-4 py-2 rounded-xl bg-black text-white font-geist-mono text-xs font-medium hover:bg-neutral-800 transition-colors"
+              className={`px-4 py-2 rounded-xl font-geist-mono text-xs font-medium transition-colors cursor-pointer ${
+                isBlack
+                  ? 'bg-white text-black hover:bg-neutral-200 font-semibold'
+                  : 'bg-black text-white hover:bg-neutral-800'
+              }`}
             >
               Close
             </button>

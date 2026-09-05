@@ -3,6 +3,7 @@ Tests for AI Forensic Analyzer (Google Gemini integration).
 """
 
 import unittest
+from unittest.mock import patch
 from backend.ai_analyzer import (
     analyze_drift_event, generate_posture_report,
     get_gemini_api_key, is_ai_configured
@@ -11,8 +12,9 @@ from backend.ai_analyzer import (
 
 class TestAIAnalyzer(unittest.TestCase):
 
-    def test_unconfigured_fallback(self):
-        # Should gracefully return structured forensic response when no key is set
+    @patch('backend.ai_analyzer.get_gemini_api_key', return_value=None)
+    def test_unconfigured_fallback(self, mock_key):
+        # Should gracefully return structured forensic response when no key is configured
         event = {
             "event_id": "test-1",
             "category": "ipc_exposure",
@@ -25,11 +27,13 @@ class TestAIAnalyzer(unittest.TestCase):
         }
         res = analyze_drift_event(event)
         self.assertIn("ai_powered", res)
+        self.assertFalse(res["ai_powered"])
         self.assertIn("forensic_summary", res)
         self.assertIn("threat_vector", res)
         self.assertIn("recommended_actions", res)
 
-    def test_posture_report_fallback(self):
+    @patch('backend.ai_analyzer.get_gemini_api_key', return_value=None)
+    def test_posture_report_fallback(self, mock_key):
         snapshot = {
             "host": "TEST-HOST",
             "timestamp": "2026-09-05T12:00:00Z",
@@ -40,6 +44,7 @@ class TestAIAnalyzer(unittest.TestCase):
         }
         report = generate_posture_report(snapshot)
         self.assertIn("ai_powered", report)
+        self.assertFalse(report["ai_powered"])
         self.assertEqual(report["host"], "TEST-HOST")
 
 
