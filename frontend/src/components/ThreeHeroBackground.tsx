@@ -9,13 +9,13 @@ export const ThreeHeroBackground: React.FC = () => {
     if (!container) return;
 
     const scene = new THREE.Scene();
-    scene.fog = new THREE.FogExp2(0xffffff, 0.002);
+    scene.fog = new THREE.FogExp2(0xffffff, 0.0015);
 
     let width = container.clientWidth;
     let height = container.clientHeight;
 
     const camera = new THREE.PerspectiveCamera(75, width / height, 0.1, 1000);
-    camera.position.z = 30;
+    camera.position.z = 32;
 
     const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
     renderer.setSize(width, height);
@@ -23,29 +23,29 @@ export const ThreeHeroBackground: React.FC = () => {
     renderer.setClearColor(0xffffff, 1);
     container.appendChild(renderer.domElement);
 
-    // 1. Main Geometry: Wireframe Torus Knot
-    const geometry = new THREE.TorusKnotGeometry(9, 2.5, 120, 16);
+    // Main Geometry: Wireframe Torus Knot
+    const geometry = new THREE.TorusKnotGeometry(9.5, 2.6, 120, 16);
     const material = new THREE.MeshPhysicalMaterial({
-      color: 0x888888, // Medium grey
+      color: 0x666666,
       emissive: 0x000000,
-      metalness: 0.5,
+      metalness: 0.4,
       roughness: 0.1,
       wireframe: true,
       transparent: true,
-      opacity: 0.3,
+      opacity: 0.22,
     });
     const torusKnot = new THREE.Mesh(geometry, material);
     scene.add(torusKnot);
 
-    // 2. Particle System: "Sparks"
-    const sparkCount = 100;
-    const sparkGeo = new THREE.CircleGeometry(0.15, 3);
+    // Particle System: Sparks
+    const sparkCount = 120;
+    const sparkGeo = new THREE.CircleGeometry(0.18, 3);
     const sparkMat = new THREE.MeshBasicMaterial({
       color: 0xd4af37, // Gold
       side: THREE.DoubleSide,
       blending: THREE.NormalBlending,
       transparent: true,
-      opacity: 1,
+      opacity: 0.9,
       depthTest: false,
     });
     const sparks = new THREE.InstancedMesh(sparkGeo, sparkMat, sparkCount);
@@ -59,7 +59,7 @@ export const ThreeHeroBackground: React.FC = () => {
 
     for (let i = 0; i < sparkCount; i++) {
       sparkData.push({
-        speed: 0.001 + Math.random() * 0.002,
+        speed: 0.0008 + Math.random() * 0.0018,
         progress: Math.random(),
         pathIndex: Math.floor(Math.random() * radialSegments),
       });
@@ -95,15 +95,15 @@ export const ThreeHeroBackground: React.FC = () => {
       sparks.instanceMatrix.needsUpdate = true;
     }
 
-    // 3. Lighting
-    const ambientLight = new THREE.AmbientLight(0xffffff, 0.8);
+    // Lighting
+    const ambientLight = new THREE.AmbientLight(0xffffff, 0.9);
     scene.add(ambientLight);
 
-    const pLight1 = new THREE.PointLight(0xd4af37, 1, 50);
-    pLight1.position.set(10, 10, 10);
+    const pLight1 = new THREE.PointLight(0xd4af37, 1.2, 60);
+    pLight1.position.set(12, 12, 12);
     scene.add(pLight1);
 
-    // 4. Interaction
+    // Mouse Interaction
     let mouseX = 0,
       mouseY = 0;
     let targetX = 0,
@@ -112,22 +112,22 @@ export const ThreeHeroBackground: React.FC = () => {
     const handleMouseMove = (e: MouseEvent) => {
       const windowHalfX = window.innerWidth / 2;
       const windowHalfY = window.innerHeight / 2;
-      mouseX = (e.clientX - windowHalfX) * 0.0005;
-      mouseY = (e.clientY - windowHalfY) * 0.0005;
+      mouseX = (e.clientX - windowHalfX) * 0.0004;
+      mouseY = (e.clientY - windowHalfY) * 0.0004;
     };
 
     window.addEventListener('mousemove', handleMouseMove);
 
-    // 5. Animation Loop
+    // Animation Loop
     let animationFrameId: number;
     const animate = () => {
       animationFrameId = requestAnimationFrame(animate);
 
-      targetX = mouseX * 0.5;
-      targetY = mouseY * 0.5;
+      targetX = mouseX * 0.4;
+      targetY = mouseY * 0.4;
 
-      torusKnot.rotation.y += 0.05 * (targetX - torusKnot.rotation.y) + 0.002;
-      torusKnot.rotation.x += 0.05 * (targetY - torusKnot.rotation.x) + 0.001;
+      torusKnot.rotation.y += 0.03 * (targetX - torusKnot.rotation.y) + 0.0015;
+      torusKnot.rotation.x += 0.03 * (targetY - torusKnot.rotation.x) + 0.0008;
 
       updateSparks();
       renderer.render(scene, camera);
@@ -165,7 +165,7 @@ export const ThreeHeroBackground: React.FC = () => {
     <div
       ref={containerRef}
       id="canvas-container"
-      className="absolute top-0 left-0 w-full h-full z-0 pointer-events-none overflow-hidden"
+      className="fixed inset-0 w-full h-full z-0 pointer-events-none overflow-hidden"
     />
   );
 };

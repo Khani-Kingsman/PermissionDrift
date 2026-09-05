@@ -23,86 +23,90 @@ const KNOWN_SERVICES: Record<number, string> = {
 export const SurfaceRadar: React.FC<SurfaceRadarProps> = ({ ports }) => {
   if (!ports || ports.length === 0) {
     return (
-      <div className="rounded-xl border border-cyan-950/80 bg-[#0d1017]/90 p-5 backdrop-blur-md">
+      <div className="rounded-2xl border border-neutral-200/80 bg-white/75 backdrop-blur-md p-6">
         <div className="flex items-center gap-2 mb-2">
-          <Radio className="w-4 h-4 text-cyan-400" />
-          <h3
-            className="text-base font-bold text-slate-100"
-            style={{ fontFamily: "'Space Grotesk', sans-serif" }}
-          >
+          <Radio className="w-4 h-4 text-neutral-700" />
+          <h3 className="text-base font-bold text-neutral-900 tracking-tight">
             Passive IPC &amp; Socket Radar
           </h3>
         </div>
-        <p className="font-mono text-xs text-slate-600 text-center py-8">
-          No listening ports detected. Run a scan to populate.
+        <p className="font-geist-mono text-xs text-neutral-400 text-center py-8">
+          No listening ports recorded. Run a scan to inspect loopback sockets.
         </p>
       </div>
     );
   }
 
-  const riskyPorts = ports.filter(p => p.is_risky);
-  const safePorts = ports.filter(p => !p.is_risky);
+  const riskyPorts = ports.filter((p) => p.is_risky);
+  const safePorts = ports.filter((p) => !p.is_risky);
 
   return (
-    <div className="rounded-xl border border-cyan-950/80 bg-[#0d1017]/90 p-5 backdrop-blur-md">
-      <div className="flex items-center justify-between mb-4 pb-3 border-b border-slate-800/80">
+    <div className="rounded-2xl border border-neutral-200/80 bg-white/75 backdrop-blur-md p-6 shadow-sm hover:shadow-md transition-all">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-5 pb-3 border-b border-neutral-100 gap-2">
         <div>
-          <h3
-            className="text-base font-bold text-slate-100 flex items-center gap-2"
-            style={{ fontFamily: "'Space Grotesk', sans-serif" }}
-          >
-            <Radio className="w-4 h-4 text-cyan-400" />
+          <h3 className="text-base font-bold text-neutral-900 flex items-center gap-2 tracking-tight">
+            <Radio className="w-4 h-4 text-black" />
             Passive IPC &amp; Socket Radar
           </h3>
-          <p className="font-mono text-xs text-slate-400 mt-0.5">
-            Loopback ports in LISTEN state — sniffed passively, zero network overhead.
+          <p className="font-geist-mono text-xs text-neutral-500 mt-0.5">
+            Listening ports enumerated on local loopback with zero network overhead.
           </p>
         </div>
         {riskyPorts.length > 0 && (
-          <div className="flex items-center gap-1.5 font-mono text-xs px-2.5 py-1 rounded-md border bg-amber-950/30 border-amber-800/40 text-amber-400">
-            <AlertOctagon className="w-3.5 h-3.5" />
-            {riskyPorts.length} risky {riskyPorts.length === 1 ? 'port' : 'ports'}
+          <div className="flex items-center gap-1.5 font-geist-mono text-xs px-3 py-1 rounded-full border bg-amber-50 border-amber-200 text-amber-800 font-semibold">
+            <AlertOctagon className="w-3.5 h-3.5 text-amber-600" />
+            {riskyPorts.length} Exposed Loopback Daemons
           </div>
         )}
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 font-mono">
-        {/* Risky ports first */}
-        {[...riskyPorts, ...safePorts].map(item => {
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 font-geist-mono">
+        {[...riskyPorts, ...safePorts].map((item) => {
           const service = KNOWN_SERVICES[item.port] || item.description || '';
           return (
             <div
               key={`${item.port}-${item.pid}`}
-              className={`p-3 rounded-lg border transition-all ${
+              className={`p-3.5 rounded-xl border transition-all ${
                 item.is_risky
-                  ? 'bg-amber-950/20 border-amber-800/50 shadow-[0_0_10px_rgba(245,158,11,0.06)]'
-                  : 'bg-slate-900/40 border-slate-800/80'
+                  ? 'bg-amber-50/40 border-amber-200 shadow-sm'
+                  : 'bg-neutral-50/60 border-neutral-200/80'
               }`}
             >
               <div className="flex items-center justify-between mb-2">
                 <div className="flex items-center gap-1.5">
-                  {item.is_risky
-                    ? <Wifi className="w-3.5 h-3.5 text-amber-500 animate-pulse" />
-                    : <Lock className="w-3.5 h-3.5 text-slate-600" />
-                  }
-                  <span className={`text-xs font-bold ${item.is_risky ? 'text-amber-300' : 'text-slate-200'}`}>
+                  {item.is_risky ? (
+                    <Wifi className="w-3.5 h-3.5 text-amber-600" />
+                  ) : (
+                    <Lock className="w-3.5 h-3.5 text-neutral-400" />
+                  )}
+                  <span
+                    className={`text-xs font-bold ${
+                      item.is_risky ? 'text-amber-900' : 'text-neutral-800'
+                    }`}
+                  >
                     {item.ip}:{item.port}
                   </span>
                 </div>
                 {item.is_risky && (
-                  <AlertOctagon className="w-3.5 h-3.5 text-amber-500 flex-shrink-0" />
+                  <AlertOctagon className="w-3.5 h-3.5 text-amber-600 flex-shrink-0" />
                 )}
               </div>
 
-              <div className="flex items-center gap-1 text-[11px] text-slate-400">
-                <Terminal className="w-3 h-3 text-cyan-600 flex-shrink-0" />
-                <span className="truncate" title={item.process_name}>{item.process_name}</span>
+              <div className="flex items-center gap-1 text-[11px] text-neutral-600">
+                <Terminal className="w-3 h-3 text-neutral-500 flex-shrink-0" />
+                <span className="truncate" title={item.process_name}>
+                  {item.process_name}
+                </span>
               </div>
 
-              <div className="flex items-center justify-between mt-1.5">
-                <span className="text-[10px] text-slate-600">PID {item.pid}</span>
+              <div className="flex items-center justify-between mt-2 pt-1 border-t border-neutral-200/50">
+                <span className="text-[10px] text-neutral-400">PID: {item.pid}</span>
                 {service && (
-                  <span className={`text-[10px] font-medium ${item.is_risky ? 'text-amber-400' : 'text-slate-500'}`}>
+                  <span
+                    className={`text-[10px] font-semibold ${
+                      item.is_risky ? 'text-amber-700' : 'text-neutral-500'
+                    }`}
+                  >
                     {service}
                   </span>
                 )}
