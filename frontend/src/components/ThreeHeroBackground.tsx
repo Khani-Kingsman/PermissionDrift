@@ -9,7 +9,7 @@ export const ThreeHeroBackground: React.FC<ThreeHeroBackgroundProps> = ({ theme 
   const containerRef = useRef<HTMLDivElement>(null);
   const rendererRef = useRef<THREE.WebGLRenderer | null>(null);
   const sceneRef = useRef<THREE.Scene | null>(null);
-  const materialRef = useRef<THREE.MeshPhysicalMaterial | null>(null);
+  const materialRef = useRef<THREE.MeshBasicMaterial | null>(null);
   const ambientLightRef = useRef<THREE.AmbientLight | null>(null);
   const pointLightRef = useRef<THREE.PointLight | null>(null);
   const sparkMatRef = useRef<THREE.MeshBasicMaterial | null>(null);
@@ -22,7 +22,7 @@ export const ThreeHeroBackground: React.FC<ThreeHeroBackgroundProps> = ({ theme 
     const scene = new THREE.Scene();
     sceneRef.current = scene;
     const isBlack = theme === 'black';
-    scene.fog = new THREE.FogExp2(isBlack ? 0x07080c : 0xffffff, isBlack ? 0.0018 : 0.0015);
+    scene.fog = new THREE.FogExp2(isBlack ? 0x07080c : 0xffffff, isBlack ? 0.0009 : 0.0015);
 
     let width = container.clientWidth;
     let height = container.clientHeight;
@@ -38,15 +38,13 @@ export const ThreeHeroBackground: React.FC<ThreeHeroBackgroundProps> = ({ theme 
     container.appendChild(renderer.domElement);
 
     // Main Geometry: Wireframe Torus Knot
+    // MeshBasicMaterial ensures pure white lines in dark mode that are NOT darkened by scene lighting
     const geometry = new THREE.TorusKnotGeometry(9.5, 2.6, 120, 16);
-    const material = new THREE.MeshPhysicalMaterial({
-      color: isBlack ? 0x888888 : 0x555555,
-      emissive: 0x000000,
-      metalness: 0.4,
-      roughness: 0.1,
+    const material = new THREE.MeshBasicMaterial({
+      color: isBlack ? 0xffffff : 0x555555,
       wireframe: true,
       transparent: true,
-      opacity: isBlack ? 0.32 : 0.22,
+      opacity: isBlack ? 0.65 : 0.22,
     });
     materialRef.current = material;
     const torusKnot = new THREE.Mesh(geometry, material);
@@ -186,9 +184,10 @@ export const ThreeHeroBackground: React.FC<ThreeHeroBackgroundProps> = ({ theme 
       rendererRef.current.setClearColor(isBlack ? 0x07080c : 0xffffff, 1);
       if (sceneRef.current.fog) {
         sceneRef.current.fog.color.setHex(isBlack ? 0x07080c : 0xffffff);
+        (sceneRef.current.fog as THREE.FogExp2).density = isBlack ? 0.0009 : 0.0015;
       }
-      materialRef.current.color.setHex(isBlack ? 0x888888 : 0x555555);
-      materialRef.current.opacity = isBlack ? 0.32 : 0.22;
+      materialRef.current.color.setHex(isBlack ? 0xffffff : 0x555555);
+      materialRef.current.opacity = isBlack ? 0.65 : 0.22;
       if (ambientLightRef.current) {
         ambientLightRef.current.color.setHex(isBlack ? 0x444444 : 0xffffff);
       }
