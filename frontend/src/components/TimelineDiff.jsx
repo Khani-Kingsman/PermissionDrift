@@ -1,153 +1,182 @@
-import React, { useState, useEffect } from 'react';
-import { GitCompare, Calendar, ArrowRight, ShieldAlert, Sparkles, RefreshCw } from 'lucide-react';
-import DriftFeed from './DriftFeed';
+import React, { useState } from 'react';
+import { GitCompare, Clock, ChevronRight, AlertTriangle, CheckCircle2, TrendingUp, TrendingDown } from 'lucide-react';
 
-export default function TimelineDiff({ snapshots = [], onSetBaseline }) {
-  const [baseId, setBaseId] = useState('');
-  const [currId, setCurrId] = useState('');
-  const [diffResult, setDiffResult] = useState(null);
+function fmt(ts) {
+  if (!ts) return '—';
+  return new Date(ts).toLocaleString('en-US', {
+    month: 'short', day: 'numeric',
+    hour: '2-digit', minute: '2-digit',
+    hour12: false,
+  });
+}
+
+function ScoreDelta({ from, to }) {
+  const delta = to - from;
+  if (delta === 0) return <span className="text-slate-500 mono text-xs">±0</span>;
+  return (
+    <span className="flex items-center gap-1 mono text-xs"
+          style={{ color: delta > 0 ? '#ef4444' : '#10b981' }}>
+      {delta > 0 ? <TrendingUp size={12} /> : <TrendingDown size={12} />}
+      {delta > 0 ? '+' : ''}{delta}
+    </span>
+  );
+}
+
+function EventDiff({ events }) {
+  if (!events?.length) {
+    return (
+      <div className="flex items-center gap-2 py-6 justify-center">
+        <CheckCircle2 size={16} style={{ color: '#10b981' }} />
+        <span className="text-sm" style={{ color: '#10b981' }}>No differences found</span>
+      </div>
+    );
+  }
+
+  const gained = events.filter(e => e.change_type === 'gained_access');
+  const widened = events.filter(e => e.change_type === 'permission_widened');
+  const lost = events.filter(e => e.change_type === 'lost_access');
+
+  const Section = ({ label, items, color, dotColor }) => items.length > 0 ? (
+    <div className="mb-3">
+      <div className="text-[10px] font-bold mono tracking-wider mb-2 uppercase" style={{ color }}>
+        {label} ({items.length})
+      </div>
+      <div className="flex flex-col gap-1.5">
+        {items.map((e, i) => (
+          <div key={i} className="flex items-center gap-2 p-2 rounded-lg"
+               style={{ background: `${color}08`, border: `1px solid ${color}20` }}>
+            <span className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ background: color }} />
+            <span className="text-xs mono flex-1" style={{ color: '#94a3b8' }}>{e.resource}</span>
+            <span className="text-xs" style={{ color: '#475569' }}>{e.accessor}</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  ) : null;
+
+  return (
+    <div>
+      <Section label="Gained access" items={gained} color="#ef4444" />
+      <Section label="Widened perms" items={widened} color="#f97316" />
+      <Section label="Lost access" items={lost} color="#10b981" />
+    </div>
+  );
+}
+
+export default function TimelineDiff({ snapshots, onCompare }) {
+  const [fromId, setFromId] = useState('');
+  const [toId, setToId] = useState('');
+  const [result, setResult] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
 
-  useEffect(() => {
-    if (snapshots.length >= 2) {
-      // Default to oldest (or baseline) vs newest
-      const baselineSnap = snapshots.find(s => s.is_baseline) || snapshots[snapshots.length - 1];
-      setBaseId(baselineSnap.scan_id);
-      setCurrId(snapshots[0].scan_id);
-    } else if (snapshots.length === 1) {
-      setBaseId(snapshots[0].scan_id);
-      setCurrId(snapshots[0].scan_id);
-    }
-  }, [snapshots]);
-
-  useEffect(() => {
-    if (baseId && currId) {
-      fetchDiff(baseId, currId);
-    }
-  }, [baseId, currId]);
-
-  const fetchDiff = async (id1, id2) => {
+  const handleCompare = async () => {
+    if (!fromId || !toId || fromId === toId) return;
     setLoading(true);
+    setError('');
+    setResult(null);
     try {
-      const res = await fetch(`/api/drift/${id1}/${id2}`);
-      if (!res.ok) throw new Error('Failed to fetch diff');
+      const res = await fetch(`/api/drift/${fromId}/${toId}`);
+      if (!res.ok) throw new Error('Failed to compare snapshots');
       const data = await res.json();
-      setDiffResult(data);
-    } catch (err) {
-      console.error(err);
-      setDiffResult(null);
+      setResult(data);
+      onCompare?.(data);
+    } catch (e) {
+      setError(e.message);
     } finally {
       setLoading(false);
     }
   };
 
-  if (snapshots.length < 2) {
-    return (
-      <div className="bg-slate-900/60 border border-slate-800 rounded-2xl p-8 text-center text-slate-400">
-        <GitCompare className="w-8 h-8 mx-auto mb-2 text-cyan-400" />
-        <h4 className="text-sm font-semibold text-white">Timeline Diff Requires At Least Two Scans</h4>
-        <p className="text-xs text-slate-500 mt-1">
-          Perform another scan using the "Scan Now" button above to compare machine state over time.
-        </p>
-      </div>
-    );
-  }
+  const snapshotsSorted = [...(snapshots || [])].sort(
+    (a, b) => new Date(b.timestamp) - new Date(a.timestamp)
+  );
 
-  const baseSnap = snapshots.find(s => s.scan_id === baseId);
-  const currSnap = snapshots.find(s => s.scan_id === currId);
+  const fromSnap = snapshotsSorted.find(s => s.scan_id === fromId);
+  const toSnap = snapshotsSorted.find(s => s.scan_id === toId);
 
-  const baseScore = baseSnap?.blast_radius_score ?? 0;
-  const currScore = diffResult?.blast_radius_score ?? currSnap?.blast_radius_score ?? 0;
-  const delta = currScore - baseScore;
+  const SelectBox = ({ value, onChange, exclude, placeholder }) => (
+    <select
+      value={value}
+      onChange={e => onChange(e.target.value)}
+      className="w-full text-xs mono px-3 py-2 rounded-lg outline-none transition-colors"
+      style={{
+        background: 'rgba(0,0,0,0.3)',
+        border: '1px solid var(--border)',
+        color: value ? 'var(--text)' : 'var(--muted)',
+      }}
+    >
+      <option value="">{placeholder}</option>
+      {snapshotsSorted
+        .filter(s => s.scan_id !== exclude)
+        .map(s => (
+          <option key={s.scan_id} value={s.scan_id}>
+            {fmt(s.timestamp)} {s.is_baseline ? '★' : ''} (score: {s.blast_radius_score ?? '?'})
+          </option>
+        ))
+      }
+    </select>
+  );
 
   return (
-    <div className="space-y-4">
-      {/* Pickers Card */}
-      <div className="bg-slate-900/80 border border-slate-800 rounded-2xl p-5 shadow-lg flex flex-col md:flex-row items-center justify-between gap-4">
-        {/* Baseline / State A */}
-        <div className="flex-1 w-full space-y-1">
-          <label className="text-xs font-semibold text-slate-400 flex items-center gap-1.5">
-            <span className="w-2 h-2 rounded-full bg-slate-400" />
-            Baseline Snapshot (State A):
-          </label>
-          <select
-            value={baseId}
-            onChange={(e) => setBaseId(e.target.value)}
-            className="w-full bg-slate-950 border border-slate-700 text-slate-200 text-xs rounded-xl p-2.5 font-mono focus:border-cyan-500 focus:outline-none"
-          >
-            {snapshots.map(s => (
-              <option key={s.scan_id} value={s.scan_id}>
-                {s.scan_id.slice(0, 8)} — {s.timestamp.slice(0, 16).replace('T', ' ')} (Score: {s.blast_radius_score}) {s.is_baseline ? '[BASELINE]' : ''}
-              </option>
-            ))}
-          </select>
+    <div className="flex flex-col gap-4">
+      {/* Selector */}
+      <div className="glass rounded-xl p-4">
+        <div className="flex items-center gap-2 mb-3">
+          <GitCompare size={14} style={{ color: 'var(--cyan)' }} />
+          <span className="text-xs font-medium" style={{ color: 'var(--text)' }}>Compare Snapshots</span>
         </div>
 
-        <div className="p-2 rounded-full bg-slate-800 text-slate-400 border border-slate-700">
-          <ArrowRight className="w-4 h-4" />
-        </div>
-
-        {/* Current / State B */}
-        <div className="flex-1 w-full space-y-1">
-          <label className="text-xs font-semibold text-slate-400 flex items-center gap-1.5">
-            <span className="w-2 h-2 rounded-full bg-cyan-400" />
-            Comparison Snapshot (State B):
-          </label>
-          <select
-            value={currId}
-            onChange={(e) => setCurrId(e.target.value)}
-            className="w-full bg-slate-950 border border-slate-700 text-slate-200 text-xs rounded-xl p-2.5 font-mono focus:border-cyan-500 focus:outline-none"
-          >
-            {snapshots.map(s => (
-              <option key={s.scan_id} value={s.scan_id}>
-                {s.scan_id.slice(0, 8)} — {s.timestamp.slice(0, 16).replace('T', ' ')} (Score: {s.blast_radius_score}) {s.is_baseline ? '[BASELINE]' : ''}
-              </option>
-            ))}
-          </select>
-        </div>
-      </div>
-
-      {/* Delta Score Banner */}
-      <div className="bg-slate-900/90 border border-slate-800 rounded-xl p-4 flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <div className="p-2 rounded-lg bg-cyan-500/10 text-cyan-400 border border-cyan-500/20">
-            <GitCompare className="w-5 h-5" />
+        <div className="flex items-center gap-2">
+          <div className="flex-1">
+            <div className="text-[10px] text-slate-600 mono mb-1 uppercase">From</div>
+            <SelectBox value={fromId} onChange={setFromId} exclude={toId} placeholder="Select baseline..." />
           </div>
-          <div>
-            <div className="text-xs text-slate-400 font-semibold uppercase tracking-wider">Blast Radius Shift</div>
-            <div className="text-sm font-bold text-white font-mono flex items-center gap-2">
-              <span>State A: {baseScore}</span>
-              <ArrowRight className="w-3.5 h-3.5 text-slate-500" />
-              <span>State B: {currScore}</span>
-              <span className={`px-2 py-0.5 rounded text-xs font-bold ${
-                delta > 0 ? 'bg-red-500/20 text-red-400 border border-red-500/30' : (
-                  delta < 0 ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30' : 'bg-slate-800 text-slate-400'
-                )
-              }`}>
-                {delta > 0 ? `+${delta}` : delta}
-              </span>
-            </div>
+
+          <ChevronRight size={14} style={{ color: 'var(--muted)', marginTop: 16 }} />
+
+          <div className="flex-1">
+            <div className="text-[10px] text-slate-600 mono mb-1 uppercase">To</div>
+            <SelectBox value={toId} onChange={setToId} exclude={fromId} placeholder="Select target..." />
           </div>
         </div>
 
-        {onSetBaseline && (
-          <button
-            onClick={() => onSetBaseline(currId)}
-            className="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-xs text-cyan-300 border border-slate-700 font-semibold transition-colors"
-          >
-            Set State B as Active Baseline
-          </button>
+        {fromId && toId && fromSnap && toSnap && (
+          <div className="flex items-center justify-between mt-3 px-1">
+            <ScoreDelta from={fromSnap.blast_radius_score ?? 0} to={toSnap.blast_radius_score ?? 0} />
+            <button
+              onClick={handleCompare}
+              disabled={loading}
+              className="flex items-center gap-2 text-xs px-4 py-2 rounded-lg transition-all disabled:opacity-50 btn-primary"
+            >
+              <GitCompare size={12} />
+              {loading ? 'Comparing…' : 'Compare'}
+            </button>
+          </div>
         )}
       </div>
 
-      {/* Diff Findings Feed */}
-      {loading ? (
-        <div className="p-8 text-center text-slate-500 flex items-center justify-center gap-2">
-          <RefreshCw className="w-4 h-4 animate-spin" />
-          Diffing snapshots...
+      {/* Error */}
+      {error && (
+        <div className="glass rounded-xl p-3 text-xs"
+             style={{ background: 'rgba(239,68,68,0.06)', border: '1px solid rgba(239,68,68,0.2)', color: '#ef4444' }}>
+          {error}
         </div>
-      ) : (
-        <DriftFeed events={diffResult?.events || []} />
+      )}
+
+      {/* Results */}
+      {result && (
+        <div className="glass rounded-xl p-4 animate-slide-in">
+          <div className="flex items-center justify-between mb-3">
+            <span className="text-xs font-medium" style={{ color: 'var(--text)' }}>
+              Diff Results
+            </span>
+            <span className="text-xs mono" style={{ color: 'var(--muted)' }}>
+              {result.events?.length ?? 0} change{result.events?.length !== 1 ? 's' : ''}
+            </span>
+          </div>
+          <EventDiff events={result.events} />
+        </div>
       )}
     </div>
   );

@@ -1,198 +1,274 @@
 import React, { useState } from 'react';
-import { X, ShieldAlert, CheckCircle2, AlertTriangle, Play, RefreshCw, Server } from 'lucide-react';
+import { X, Wifi, Loader, CheckCircle2, AlertTriangle, ShieldAlert, Info } from 'lucide-react';
 
-export default function DeepCheckModal({ isOpen, onClose, candidatePorts = [] }) {
-  const [selectedPorts, setSelectedPorts] = useState([2375, 11434, 9200, 8080]);
+const COMMON_PORTS = [
+  { port: 2375, label: 'Docker (unauth)', risk: 'critical' },
+  { port: 2376, label: 'Docker TLS', risk: 'medium' },
+  { port: 11434, label: 'Ollama (local AI)', risk: 'high' },
+  { port: 3000,  label: 'Dev server', risk: 'low' },
+  { port: 8080,  label: 'HTTP alt', risk: 'low' },
+  { port: 6443,  label: 'Kubernetes API', risk: 'critical' },
+  { port: 9090,  label: 'Prometheus', risk: 'medium' },
+  { port: 5432,  label: 'PostgreSQL', risk: 'high' },
+  { port: 6379,  label: 'Redis', risk: 'high' },
+  { port: 27017, label: 'MongoDB', risk: 'high' },
+];
+
+const RISK_COLORS = {
+  critical: { bg: 'rgba(239,68,68,0.1)',   border: 'rgba(239,68,68,0.3)',   text: '#ef4444' },
+  high:     { bg: 'rgba(249,115,22,0.1)',  border: 'rgba(249,115,22,0.3)',  text: '#f97316' },
+  medium:   { bg: 'rgba(234,179,8,0.1)',   border: 'rgba(234,179,8,0.3)',   text: '#eab308' },
+  low:      { bg: 'rgba(100,116,139,0.1)', border: 'rgba(100,116,139,0.3)', text: '#94a3b8' },
+};
+
+function PortResult({ port, result }) {
+  const portInfo = COMMON_PORTS.find(p => p.port === port);
+  const risk = portInfo?.risk || 'low';
+  const colors = RISK_COLORS[risk];
+
+  if (!result) {
+    return (
+      <div className="flex items-center gap-3 p-2.5 rounded-lg" style={{ background: 'rgba(0,0,0,0.2)' }}>
+        <Loader size={14} className="animate-spin" style={{ color: 'var(--muted)' }} />
+        <span className="mono text-xs" style={{ color: 'var(--muted)' }}>:{port}</span>
+        <span className="text-xs" style={{ color: 'var(--muted)' }}>Probing…</span>
+      </div>
+    );
+  }
+
+  const isOpen = result.open;
+
+  return (
+    <div
+      className="flex items-center gap-3 p-2.5 rounded-lg transition-colors"
+      style={{
+        background: isOpen ? colors.bg : 'rgba(16,185,129,0.05)',
+        border: `1px solid ${isOpen ? colors.border : 'rgba(16,185,129,0.15)'}`,
+      }}
+    >
+      {isOpen
+        ? <AlertTriangle size={14} style={{ color: colors.text, flexShrink: 0 }} />
+        : <CheckCircle2 size={14} style={{ color: '#10b981', flexShrink: 0 }} />
+      }
+
+      <span className="mono text-xs font-medium" style={{ color: isOpen ? colors.text : '#10b981', flexShrink: 0, width: 48 }}>
+        :{port}
+      </span>
+
+      <div className="flex-1 min-w-0">
+        <div className="flex items-center gap-2">
+          {portInfo?.label && (
+            <span className="text-xs" style={{ color: isOpen ? colors.text : 'var(--muted)' }}>
+              {portInfo.label}
+            </span>
+          )}
+          <span className="text-xs" style={{ color: isOpen ? colors.text : '#10b981' }}>
+            {isOpen ? '● OPEN' : '○ CLOSED'}
+          </span>
+        </div>
+        {isOpen && result.banner && (
+          <div className="text-[10px] mono mt-0.5 truncate" style={{ color: '#475569' }}>
+            {result.banner}
+          </div>
+        )}
+      </div>
+
+      {isOpen && risk !== 'low' && (
+        <span className="text-[10px] mono px-1.5 py-0.5 rounded-full flex-shrink-0"
+              style={{ background: colors.bg, color: colors.text, border: `1px solid ${colors.border}` }}>
+          {risk.toUpperCase()}
+        </span>
+      )}
+    </div>
+  );
+}
+
+export default function DeepCheckModal({ onClose }) {
+  const [selectedPorts, setSelectedPorts] = useState(new Set([2375, 11434]));
   const [customPort, setCustomPort] = useState('');
+  const [results, setResults] = useState(null);
   const [loading, setLoading] = useState(false);
-  const [findings, setFindings] = useState(null);
-  const [error, setError] = useState(null);
-
-  if (!isOpen) return null;
+  const [error, setError] = useState('');
 
   const togglePort = (port) => {
-    setSelectedPorts(prev => 
-      prev.includes(port) ? prev.filter(p => p !== port) : [...prev, port]
-    );
+    setSelectedPorts(prev => {
+      const next = new Set(prev);
+      next.has(port) ? next.delete(port) : next.add(port);
+      return next;
+    });
   };
 
-  const addCustomPort = (e) => {
-    e.preventDefault();
-    const p = parseInt(customPort, 10);
-    if (p > 0 && p <= 65535 && !selectedPorts.includes(p)) {
-      setSelectedPorts(prev => [...prev, p]);
+  const addCustom = () => {
+    const p = parseInt(customPort);
+    if (p >= 1 && p <= 65535) {
+      setSelectedPorts(prev => new Set([...prev, p]));
       setCustomPort('');
     }
   };
 
-  const executeDeepCheck = async () => {
+  const handleRun = async () => {
+    if (!selectedPorts.size) return;
     setLoading(true);
-    setError(null);
+    setError('');
+    setResults(null);
+
     try {
       const res = await fetch('/api/deep-check', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ports: selectedPorts })
+        body: JSON.stringify({ ports: [...selectedPorts] }),
       });
-      if (!res.ok) throw new Error(`HTTP error ${res.status}`);
+      if (!res.ok) throw new Error('Deep check request failed');
       const data = await res.json();
-      setFindings(data.findings || []);
-    } catch (err) {
-      setError(err.message);
+      setResults(data.results || {});
+    } catch (e) {
+      setError(e.message);
     } finally {
       setLoading(false);
     }
   };
 
+  const openCount = results ? Object.values(results).filter(r => r?.open).length : 0;
+
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
-      <div className="bg-slate-900 border border-amber-500/40 rounded-2xl max-w-2xl w-full p-6 shadow-2xl relative overflow-hidden">
-        {/* Amber accent glow */}
-        <div className="absolute -top-12 -right-12 w-40 h-40 bg-amber-500/10 rounded-full blur-3xl pointer-events-none" />
-
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center p-4"
+      style={{ background: 'rgba(0,0,0,0.75)', backdropFilter: 'blur(8px)' }}
+    >
+      <div
+        className="glass rounded-2xl w-full max-w-lg shadow-2xl flex flex-col animate-slide-in"
+        style={{ maxHeight: '90vh', border: '1px solid rgba(245,158,11,0.3)' }}
+      >
         {/* Header */}
-        <div className="flex items-start justify-between pb-4 border-b border-slate-800">
-          <div className="flex items-center gap-3">
-            <div className="p-2.5 rounded-xl bg-amber-500/10 text-amber-400 border border-amber-500/30">
-              <ShieldAlert className="w-5 h-5" />
-            </div>
-            <div>
-              <div className="flex items-center gap-2">
-                <h3 className="text-base font-bold text-white">Manual Localhost Deep Check</h3>
-                <span className="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-amber-500/20 text-amber-300 border border-amber-500/40">
-                  OPT-IN ACTIVE CHECK
-                </span>
-              </div>
-              <p className="text-xs text-slate-400 mt-0.5">
-                Probes flagged ports to verify unauthenticated HTTP access.
-              </p>
-            </div>
+        <div className="flex items-center gap-3 p-5 border-b" style={{ borderColor: 'var(--border)' }}>
+          <div className="w-8 h-8 rounded-lg flex items-center justify-center"
+               style={{ background: 'rgba(245,158,11,0.1)', border: '1px solid rgba(245,158,11,0.2)' }}>
+            <ShieldAlert size={16} style={{ color: '#f59e0b' }} />
           </div>
-          <button 
-            onClick={onClose}
-            className="p-1 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition-colors"
-          >
-            <X className="w-5 h-5" />
-          </button>
-        </div>
-
-        {/* Safety Guarantee Box */}
-        <div className="my-4 p-3 rounded-lg bg-slate-950/60 border border-slate-800 text-xs text-slate-300 space-y-1">
-          <div className="flex items-center gap-1.5 font-semibold text-amber-300">
-            <AlertTriangle className="w-3.5 h-3.5" />
-            Safety & Privacy Guarantee:
+          <div>
+            <h2 className="text-sm font-semibold" style={{ color: 'var(--text)' }}>Deep Check</h2>
+            <p className="text-xs" style={{ color: 'var(--muted)' }}>Active localhost port probe — 127.0.0.1 only</p>
           </div>
-          <p className="text-slate-400 text-[11px]">
-            This probe strictly binds to <strong className="font-mono text-slate-200">127.0.0.1</strong>. It never initiates outbound internet connections.
-            It performs a single non-invasive HTTP GET with a 1-second timeout. It is never invoked automatically or on background schedule.
-          </p>
-        </div>
-
-        {/* Port Selection */}
-        <div className="space-y-2">
-          <label className="text-xs font-semibold text-slate-300">Select Localhost Ports to Probe:</label>
-          <div className="flex flex-wrap gap-2">
-            {[2375, 11434, 9200, 6379, 8080, 5000].map(p => {
-              const isChecked = selectedPorts.includes(p);
-              return (
-                <button
-                  key={p}
-                  type="button"
-                  onClick={() => togglePort(p)}
-                  className={`px-3 py-1.5 rounded-lg text-xs font-mono font-semibold border transition-all ${
-                    isChecked 
-                      ? 'bg-amber-500/20 text-amber-300 border-amber-500/40' 
-                      : 'bg-slate-800/60 text-slate-400 border-slate-700 hover:border-slate-600'
-                  }`}
-                >
-                  Port {p}
-                </button>
-              );
-            })}
-          </div>
-
-          <form onSubmit={addCustomPort} className="flex gap-2 mt-2">
-            <input
-              type="number"
-              placeholder="Add custom port (e.g. 8000)"
-              value={customPort}
-              onChange={(e) => setCustomPort(e.target.value)}
-              className="px-3 py-1 text-xs bg-slate-950 border border-slate-700 rounded-lg text-white font-mono placeholder:text-slate-500 focus:outline-none focus:border-amber-500"
-            />
-            <button
-              type="submit"
-              className="px-3 py-1 text-xs bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-lg border border-slate-700"
-            >
-              Add
-            </button>
-          </form>
-        </div>
-
-        {/* Action Button */}
-        <div className="my-4">
           <button
-            onClick={executeDeepCheck}
-            disabled={loading || selectedPorts.length === 0}
-            className="w-full py-2.5 px-4 rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-slate-950 font-bold text-xs flex items-center justify-center gap-2 shadow-lg shadow-amber-500/20 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+            onClick={onClose}
+            className="ml-auto p-1.5 rounded-lg hover:bg-white/5 transition-colors"
+            style={{ color: 'var(--muted)' }}
           >
-            {loading ? (
-              <>
-                <RefreshCw className="w-4 h-4 animate-spin" />
-                Probing Localhost Ports...
-              </>
-            ) : (
-              <>
-                <Play className="w-4 h-4" />
-                Run Manual Deep Check on {selectedPorts.length} Port{selectedPorts.length > 1 ? 's' : ''}
-              </>
-            )}
+            <X size={16} />
           </button>
         </div>
 
-        {/* Results Area */}
-        {error && (
-          <div className="p-3 rounded-lg bg-red-950/30 border border-red-500/30 text-xs text-red-300">
-            Error probing ports: {error}
+        {/* Content */}
+        <div className="flex-1 overflow-y-auto p-5 flex flex-col gap-4">
+          {/* Info */}
+          <div className="flex gap-2 p-3 rounded-lg text-xs"
+               style={{ background: 'rgba(245,158,11,0.05)', border: '1px solid rgba(245,158,11,0.15)' }}>
+            <Info size={13} style={{ color: '#f59e0b', flexShrink: 0, marginTop: 1 }} />
+            <span style={{ color: '#94a3b8' }}>
+              Probes each selected port via TCP connect on 127.0.0.1 with a 1s timeout.
+              No data is read or sent. Results are not stored.
+            </span>
           </div>
-        )}
 
-        {findings && (
-          <div className="space-y-2 max-h-56 overflow-y-auto pr-1">
-            <div className="text-xs font-semibold text-slate-300">Probe Findings:</div>
-            {findings.map((f, idx) => (
-              <div 
-                key={idx}
-                className={`p-3 rounded-xl border text-xs ${
-                  f.is_unauthenticated 
-                    ? 'bg-red-950/30 border-red-500/40 text-red-300' 
-                    : 'bg-slate-950/50 border-slate-800 text-slate-300'
-                }`}
+          {/* Port selection */}
+          <div>
+            <div className="text-xs font-medium mb-2" style={{ color: 'var(--text)' }}>Select Ports</div>
+            <div className="grid grid-cols-2 gap-1.5">
+              {COMMON_PORTS.map(({ port, label, risk }) => {
+                const colors = RISK_COLORS[risk];
+                const selected = selectedPorts.has(port);
+                return (
+                  <button
+                    key={port}
+                    onClick={() => togglePort(port)}
+                    className="flex items-center gap-2 p-2 rounded-lg text-left transition-all"
+                    style={{
+                      background: selected ? colors.bg : 'rgba(0,0,0,0.2)',
+                      border: `1px solid ${selected ? colors.border : 'var(--border)'}`,
+                    }}
+                  >
+                    <span className="mono text-xs flex-shrink-0" style={{ color: selected ? colors.text : 'var(--muted)' }}>
+                      :{port}
+                    </span>
+                    <span className="text-[11px] truncate" style={{ color: selected ? colors.text : 'var(--muted)' }}>
+                      {label}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* Custom port */}
+            <div className="flex gap-2 mt-2">
+              <input
+                type="number"
+                placeholder="Custom port (1–65535)"
+                value={customPort}
+                onChange={e => setCustomPort(e.target.value)}
+                onKeyDown={e => e.key === 'Enter' && addCustom()}
+                className="flex-1 text-xs mono px-3 py-2 rounded-lg outline-none"
+                style={{
+                  background: 'rgba(0,0,0,0.3)',
+                  border: '1px solid var(--border)',
+                  color: 'var(--text)',
+                }}
+              />
+              <button
+                onClick={addCustom}
+                className="text-xs px-3 py-2 rounded-lg btn-amber"
               >
-                <div className="flex items-center justify-between">
-                  <span className="font-mono font-bold text-white flex items-center gap-2">
-                    <Server className="w-3.5 h-3.5" />
-                    127.0.0.1:{f.port} ({f.service})
+                Add
+              </button>
+            </div>
+          </div>
+
+          {/* Results */}
+          {results && (
+            <div>
+              <div className="flex items-center justify-between mb-2">
+                <div className="text-xs font-medium" style={{ color: 'var(--text)' }}>Results</div>
+                {openCount > 0 && (
+                  <span className="text-xs mono badge-high px-2 py-0.5 rounded-full">
+                    {openCount} open
                   </span>
-                  {f.is_unauthenticated ? (
-                    <span className="px-2 py-0.5 rounded text-[10px] font-mono bg-red-500/20 text-red-300 border border-red-500/40 font-bold">
-                      UNAUTHENTICATED
-                    </span>
-                  ) : (
-                    <span className="px-2 py-0.5 rounded text-[10px] font-mono bg-slate-800 text-slate-400 border border-slate-700">
-                      PROTECTED / CLOSED
-                    </span>
-                  )}
-                </div>
-                <p className="text-[11px] mt-1 text-slate-400">{f.message}</p>
-                {f.raw_snippet && (
-                  <div className="mt-1.5 p-1.5 bg-slate-950 font-mono text-[10px] text-slate-400 rounded border border-slate-800 truncate">
-                    Snippet: {f.raw_snippet}
-                  </div>
                 )}
               </div>
-            ))}
+              <div className="flex flex-col gap-1.5">
+                {[...selectedPorts].sort((a, b) => a - b).map(port => (
+                  <PortResult key={port} port={port} result={results[port]} />
+                ))}
+              </div>
+            </div>
+          )}
+
+          {error && (
+            <div className="text-xs p-3 rounded-lg"
+                 style={{ background: 'rgba(239,68,68,0.06)', border: '1px solid rgba(239,68,68,0.2)', color: '#ef4444' }}>
+              {error}
+            </div>
+          )}
+        </div>
+
+        {/* Footer */}
+        <div className="p-4 border-t flex justify-between items-center" style={{ borderColor: 'var(--border)' }}>
+          <span className="text-xs" style={{ color: 'var(--muted)' }}>
+            {selectedPorts.size} port{selectedPorts.size !== 1 ? 's' : ''} selected
+          </span>
+          <div className="flex gap-2">
+            <button onClick={onClose} className="text-xs px-4 py-2 rounded-lg transition-colors"
+                    style={{ color: 'var(--muted)', border: '1px solid var(--border)' }}>
+              Cancel
+            </button>
+            <button
+              onClick={handleRun}
+              disabled={loading || !selectedPorts.size}
+              className="flex items-center gap-2 text-xs px-4 py-2 rounded-lg btn-amber disabled:opacity-50"
+            >
+              {loading ? <Loader size={12} className="animate-spin" /> : <Wifi size={12} />}
+              {loading ? 'Probing…' : 'Run Deep Check'}
+            </button>
           </div>
-        )}
+        </div>
       </div>
     </div>
   );

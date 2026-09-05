@@ -1,163 +1,233 @@
 import React, { useState } from 'react';
-import { 
-  AlertTriangle, ShieldAlert, ArrowRight, CheckCircle,
-  Wrench, Copy, Check, ChevronDown, ChevronUp, Sparkles, HelpCircle
+import {
+  ChevronDown, ChevronRight, AlertTriangle, AlertCircle,
+  Info, Minus, Wrench, GitBranch, Shield, Zap
 } from 'lucide-react';
 
-const SEVERITY_CONFIG = {
+const SEV_CONFIG = {
   critical: {
-    badge: 'bg-red-500/10 text-red-400 border-red-500/30',
-    border: 'border-red-500/40 bg-red-950/10',
-    dot: 'bg-red-500',
-    icon: ShieldAlert
+    badge: 'badge-critical',
+    icon: AlertCircle,
+    iconColor: '#ef4444',
+    label: 'CRITICAL',
+    borderLeft: 'border-l-[#ef4444]',
+    bg: 'hover:bg-red-500/[0.04]',
   },
   high: {
-    badge: 'bg-orange-500/10 text-orange-400 border-orange-500/30',
-    border: 'border-orange-500/40 bg-orange-950/10',
-    dot: 'bg-orange-500',
-    icon: AlertTriangle
+    badge: 'badge-high',
+    icon: AlertTriangle,
+    iconColor: '#f97316',
+    label: 'HIGH',
+    borderLeft: 'border-l-[#f97316]',
+    bg: 'hover:bg-orange-500/[0.04]',
   },
   medium: {
-    badge: 'bg-amber-500/10 text-amber-400 border-amber-500/30',
-    border: 'border-amber-500/30 bg-amber-950/10',
-    dot: 'bg-amber-500',
-    icon: AlertTriangle
+    badge: 'badge-medium',
+    icon: AlertTriangle,
+    iconColor: '#eab308',
+    label: 'MEDIUM',
+    borderLeft: 'border-l-[#eab308]',
+    bg: 'hover:bg-yellow-500/[0.04]',
   },
   low: {
-    badge: 'bg-slate-800 text-slate-400 border-slate-700',
-    border: 'border-slate-800 bg-slate-900/40',
-    dot: 'bg-slate-400',
-    icon: CheckCircle
-  }
+    badge: 'badge-low',
+    icon: Info,
+    iconColor: '#94a3b8',
+    label: 'LOW',
+    borderLeft: 'border-l-slate-500',
+    bg: 'hover:bg-slate-500/[0.03]',
+  },
 };
 
-export default function DriftFeed({ events = [] }) {
-  const [expandedEvents, setExpandedEvents] = useState({});
-  const [copiedIndex, setCopiedIndex] = useState(null);
+const CATEGORY_LABELS = {
+  credential_access: 'Credential Access',
+  extension_permission: 'Extension',
+  cli_tool: 'CLI Tool',
+  process_handle: 'Process Handle',
+  ai_agent: 'AI Agent',
+  workspace_isolation: 'Workspace',
+  ipc_exposure: 'IPC Exposure',
+};
 
-  const toggleExpand = (idx) => {
-    setExpandedEvents(prev => ({ ...prev, [idx]: !prev[idx] }));
-  };
+function DriftCard({ event, index }) {
+  const [expanded, setExpanded] = useState(false);
+  const sev = SEV_CONFIG[event.severity] || SEV_CONFIG.low;
+  const SevIcon = sev.icon;
 
-  const copyRecipe = (recipe, idx) => {
-    navigator.clipboard.writeText(recipe);
-    setCopiedIndex(idx);
-    setTimeout(() => setCopiedIndex(null), 2000);
-  };
+  return (
+    <div
+      className={`glass rounded-xl border-l-2 transition-all duration-200 animate-slide-in ${sev.borderLeft} ${sev.bg}`}
+      style={{ animationDelay: `${index * 50}ms` }}
+    >
+      {/* Header row */}
+      <div
+        className="flex items-start gap-3 p-4 cursor-pointer"
+        onClick={() => setExpanded(e => !e)}
+      >
+        {/* Severity icon */}
+        <SevIcon size={16} style={{ color: sev.iconColor, marginTop: 2, flexShrink: 0 }} />
 
-  if (!events || events.length === 0) {
-    return (
-      <div className="bg-slate-900/60 border border-slate-800 rounded-2xl p-10 text-center flex flex-col items-center justify-center space-y-3">
-        <div className="p-3 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
-          <CheckCircle className="w-8 h-8" />
+        <div className="flex-1 min-w-0">
+          {/* Badges row */}
+          <div className="flex flex-wrap items-center gap-2 mb-1.5">
+            <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full mono tracking-wider ${sev.badge}`}>
+              {sev.label}
+            </span>
+            {CATEGORY_LABELS[event.category] && (
+              <span className="text-[10px] px-1.5 py-0.5 rounded text-slate-500 border border-slate-700 mono">
+                {CATEGORY_LABELS[event.category]}
+              </span>
+            )}
+            {event.is_heuristic && (
+              <span className="text-[10px] px-1.5 py-0.5 rounded mono"
+                    style={{ background: 'rgba(139,92,246,0.1)', color: '#8b5cf6', border: '1px solid rgba(139,92,246,0.3)' }}>
+                HEURISTIC
+              </span>
+            )}
+          </div>
+
+          {/* Impact statement */}
+          <p className="text-sm leading-relaxed" style={{ color: 'var(--text)' }}>
+            {event.impact_statement}
+          </p>
+
+          {/* Resource + accessor */}
+          <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mt-2">
+            {event.resource && (
+              <span className="text-xs mono" style={{ color: 'var(--muted)' }}>
+                <span style={{ color: 'var(--border-bright)' }}>resource</span> {event.resource}
+              </span>
+            )}
+            {event.accessor && (
+              <span className="text-xs mono" style={{ color: 'var(--muted)' }}>
+                <span style={{ color: 'var(--border-bright)' }}>by</span> {event.accessor}
+              </span>
+            )}
+          </div>
         </div>
-        <h3 className="text-base font-semibold text-white">Zero Permission Drift Detected</h3>
-        <p className="text-xs text-slate-400 max-w-md">
-          Current machine access, handles, and extensions strictly match the baseline snapshot.
-          Any newly gained access will immediately show up in this feed.
-        </p>
+
+        {/* Expand button */}
+        <button
+          className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg transition-all flex-shrink-0"
+          style={{
+            background: 'rgba(0,229,255,0.06)',
+            color: '#00e5ff',
+            border: '1px solid rgba(0,229,255,0.15)',
+          }}
+        >
+          <Wrench size={11} />
+          Fix
+          {expanded ? <ChevronDown size={11} /> : <ChevronRight size={11} />}
+        </button>
+      </div>
+
+      {/* Expanded remediation */}
+      {expanded && (
+        <div
+          className="mx-4 mb-4 p-3 rounded-lg animate-slide-in"
+          style={{ background: 'rgba(0,229,255,0.04)', border: '1px solid rgba(0,229,255,0.1)' }}
+        >
+          <div className="flex items-center gap-2 mb-2">
+            <Shield size={12} style={{ color: '#00e5ff' }} />
+            <span className="text-xs font-semibold" style={{ color: '#00e5ff' }}>Remediation</span>
+          </div>
+          <p className="text-sm" style={{ color: '#94a3b8' }}>{event.remediation}</p>
+
+          {/* State diff */}
+          {event.previous_state && event.current_state && (
+            <div className="mt-3 grid grid-cols-2 gap-2">
+              <div className="p-2 rounded" style={{ background: 'rgba(239,68,68,0.06)', border: '1px solid rgba(239,68,68,0.15)' }}>
+                <div className="text-[10px] text-red-500 mono mb-1">BEFORE</div>
+                <div className="text-xs mono text-slate-400">{event.previous_state}</div>
+              </div>
+              <div className="p-2 rounded" style={{ background: 'rgba(16,185,129,0.06)', border: '1px solid rgba(16,185,129,0.15)' }}>
+                <div className="text-[10px] text-emerald-500 mono mb-1">AFTER</div>
+                <div className="text-xs mono text-slate-400">{event.current_state}</div>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+const SEV_ORDER = { critical: 0, high: 1, medium: 2, low: 3 };
+
+export default function DriftFeed({ events = [], loading }) {
+  const [filter, setFilter] = useState('all');
+
+  const sorted = [...events].sort((a, b) =>
+    (SEV_ORDER[a.severity] ?? 9) - (SEV_ORDER[b.severity] ?? 9)
+  );
+
+  const filtered = filter === 'all' ? sorted : sorted.filter(e => e.severity === filter);
+
+  const counts = events.reduce((acc, e) => {
+    acc[e.severity] = (acc[e.severity] || 0) + 1;
+    return acc;
+  }, {});
+
+  if (loading) {
+    return (
+      <div className="flex flex-col gap-3">
+        {[...Array(3)].map((_, i) => (
+          <div key={i} className="glass rounded-xl p-4 h-20 animate-pulse"
+               style={{ background: 'linear-gradient(90deg, #111827 25%, #141d2e 50%, #111827 75%)', backgroundSize: '200% 100%' }} />
+        ))}
+      </div>
+    );
+  }
+
+  if (!events.length) {
+    return (
+      <div className="flex flex-col items-center justify-center py-16 gap-4">
+        <div className="w-16 h-16 rounded-full flex items-center justify-center"
+             style={{ background: 'rgba(16,185,129,0.1)', border: '1px solid rgba(16,185,129,0.2)' }}>
+          <Shield size={28} style={{ color: '#10b981' }} />
+        </div>
+        <div className="text-center">
+          <p className="text-sm font-medium" style={{ color: '#10b981' }}>No drift detected</p>
+          <p className="text-xs mt-1" style={{ color: 'var(--muted)' }}>Your posture matches the baseline</p>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="space-y-3">
-      <div className="flex items-center justify-between text-xs text-slate-400 px-1">
-        <span>Showing {events.length} detected drift event{events.length > 1 ? 's' : ''}</span>
-        <span className="font-mono text-[11px] text-slate-500">Sorted reverse-chronologically</span>
+    <div className="flex flex-col gap-4">
+      {/* Filter tabs */}
+      <div className="flex items-center gap-1.5 flex-wrap">
+        {['all', 'critical', 'high', 'medium', 'low'].map(sev => {
+          const count = sev === 'all' ? events.length : (counts[sev] || 0);
+          const cfg = SEV_CONFIG[sev];
+          return (
+            <button
+              key={sev}
+              onClick={() => setFilter(sev)}
+              className={`flex items-center gap-1.5 text-xs px-2.5 py-1 rounded-lg transition-all mono ${
+                filter === sev ? (cfg ? cfg.badge : 'bg-white/10 text-white') : ''
+              }`}
+              style={filter !== sev ? { color: 'var(--muted)', border: '1px solid var(--border)' } : {}}
+            >
+              {sev.toUpperCase()}
+              {count > 0 && <span className="opacity-75">{count}</span>}
+            </button>
+          );
+        })}
       </div>
 
-      {events.map((ev, idx) => {
-        const sev = (ev.severity || 'low').toLowerCase();
-        const conf = SEVERITY_CONFIG[sev] || SEVERITY_CONFIG.low;
-        const IconComponent = conf.icon;
-        const isExpanded = !!expandedEvents[idx];
-
-        return (
-          <div 
-            key={ev.event_id || idx}
-            className={`border rounded-xl p-4.5 transition-all duration-200 ${conf.border}`}
-          >
-            {/* Top Bar: Severity, Resource, Accessor */}
-            <div className="flex items-start justify-between gap-4">
-              <div className="flex items-start gap-3">
-                <div className="p-2 rounded-lg bg-slate-900 border border-slate-800 text-slate-300 mt-0.5">
-                  <IconComponent className="w-4 h-4" />
-                </div>
-                <div>
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <span className={`px-2 py-0.5 rounded-full text-[10px] font-mono font-bold tracking-wider uppercase border ${conf.badge}`}>
-                      {sev}
-                    </span>
-                    {ev.is_heuristic && (
-                      <span className="px-2 py-0.5 rounded-full text-[10px] font-mono bg-yellow-500/10 text-yellow-400 border border-yellow-500/30 flex items-center gap-1">
-                        <HelpCircle className="w-3 h-3" />
-                        HEURISTIC SIGNAL
-                      </span>
-                    )}
-                    <span className="text-xs font-mono text-slate-400">
-                      Category: {ev.category}
-                    </span>
-                  </div>
-
-                  <h4 className="text-sm font-bold text-white mt-1.5 flex items-center gap-2">
-                    <span>{ev.accessor}</span>
-                    <ArrowRight className="w-3.5 h-3.5 text-slate-500" />
-                    <span className="font-mono text-cyan-300">{ev.resource}</span>
-                  </h4>
-                </div>
-              </div>
-
-              <button
-                onClick={() => toggleExpand(idx)}
-                className="px-2.5 py-1 rounded-lg text-xs bg-slate-850 hover:bg-slate-800 text-slate-300 border border-slate-700/60 flex items-center gap-1 transition-colors"
-              >
-                <span>{isExpanded ? 'Less' : 'Details'}</span>
-                {isExpanded ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
-              </button>
-            </div>
-
-            {/* Impact Statement */}
-            <div className="mt-3 text-xs text-slate-300 bg-slate-950/40 p-2.5 rounded-lg border border-slate-800/60">
-              <span className="text-slate-400 font-semibold mr-1">Impact:</span>
-              {ev.impact_statement}
-            </div>
-
-            {/* Transition: Previous State -> Current State */}
-            <div className="mt-2.5 flex items-center gap-2 text-xs font-mono text-slate-400 bg-slate-900/50 px-3 py-1.5 rounded-md border border-slate-800/40">
-              <span className="text-slate-500">Prev:</span>
-              <span className="text-slate-300">{ev.previous_state || 'None'}</span>
-              <ArrowRight className="w-3 h-3 text-slate-600" />
-              <span className="text-slate-500">Now:</span>
-              <span className="text-emerald-400 font-semibold">{ev.current_state}</span>
-            </div>
-
-            {/* Expandable Remediation Panel ("Fix it") */}
-            {isExpanded && ev.remediation && (
-              <div className="mt-3 pt-3 border-t border-slate-800/80">
-                <div className="p-3 rounded-lg bg-cyan-950/20 border border-cyan-500/20 text-xs">
-                  <div className="flex items-center justify-between mb-1.5">
-                    <span className="font-semibold text-cyan-300 flex items-center gap-1.5">
-                      <Wrench className="w-3.5 h-3.5" />
-                      Fix It / Remediation Recipe:
-                    </span>
-                    <button
-                      onClick={() => copyRecipe(ev.remediation, idx)}
-                      className="text-[11px] text-cyan-400 hover:text-cyan-200 flex items-center gap-1"
-                    >
-                      {copiedIndex === idx ? <Check className="w-3 h-3 text-emerald-400" /> : <Copy className="w-3 h-3" />}
-                      {copiedIndex === idx ? 'Copied!' : 'Copy'}
-                    </button>
-                  </div>
-                  <div className="font-mono text-slate-200 bg-slate-950/70 p-2 rounded border border-slate-800">
-                    {ev.remediation}
-                  </div>
-                </div>
-              </div>
-            )}
-          </div>
-        );
-      })}
+      {/* Event cards */}
+      <div className="flex flex-col gap-3">
+        {filtered.map((event, i) => (
+          <DriftCard key={event.event_id || i} event={event} index={i} />
+        ))}
+        {filtered.length === 0 && (
+          <p className="text-sm text-center py-8" style={{ color: 'var(--muted)' }}>
+            No {filter} severity events
+          </p>
+        )}
+      </div>
     </div>
   );
 }
