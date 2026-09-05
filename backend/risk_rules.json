@@ -1,0 +1,90 @@
+{
+  "rules": [
+    {
+      "id": "ssh_key_access",
+      "category": "credential_access",
+      "resource_pattern": "\\.ssh",
+      "severity": "high",
+      "impact_statement": "Could exfiltrate SSH private keys, enabling lateral movement to servers and repositories.",
+      "remediation": "Rotate the key if access looks unintended; restrict directory permissions to 600/700."
+    },
+    {
+      "id": "cloud_cli_access",
+      "category": "credential_access",
+      "resource_pattern": "(\\.aws|\\.azure|gcloud)",
+      "severity": "critical",
+      "impact_statement": "Could access or modify cloud infrastructure under your identity.",
+      "remediation": "Use 'aws sts get-session-token' for scoped, time-limited credentials instead of long-lived profiles."
+    },
+    {
+      "id": "docker_pipe_access",
+      "category": "credential_access",
+      "resource_pattern": "docker",
+      "severity": "critical",
+      "impact_statement": "Equivalent to root/administrator access on the host via Docker Engine.",
+      "remediation": "Front it with docker-socket-proxy scoped to read-only safe endpoints."
+    },
+    {
+      "id": "kube_config_access",
+      "category": "credential_access",
+      "resource_pattern": "(\\.kube|kubeconfig)",
+      "severity": "high",
+      "impact_statement": "Could access or modify production Kubernetes clusters and workloads.",
+      "remediation": "Scope the kubeconfig context to a namespace-limited service account."
+    },
+    {
+      "id": "extension_all_urls",
+      "category": "extension_permission",
+      "resource_pattern": ".*",
+      "severity": "high",
+      "impact_statement": "Extension widened permissions to <all_urls>; can read/modify all web traffic and active sessions.",
+      "remediation": "Open extension site-access settings in your browser and restrict access to specific domains."
+    },
+    {
+      "id": "extension_new",
+      "category": "extension_permission",
+      "resource_pattern": ".*",
+      "severity": "medium",
+      "impact_statement": "New browser extension installed with access to tabs, storage, or requests.",
+      "remediation": "Verify extension publisher authenticity and remove if not recognized."
+    },
+    {
+      "id": "ai_agent_credential_access",
+      "category": "ai_agent",
+      "resource_pattern": ".*",
+      "severity": "high",
+      "impact_statement": "An AI coding agent or spawned MCP subprocess gained credential access and can act autonomously.",
+      "remediation": "Review the agent's MCP tool/file permissions config; restrict its working directory."
+    },
+    {
+      "id": "workspace_isolation_leak",
+      "category": "workspace_isolation",
+      "resource_pattern": ".*",
+      "severity": "medium",
+      "impact_statement": "A window's extension host or IDE process accessed files belonging to a different open project.",
+      "remediation": "Enable VSCode/Cursor Workspace Trust; avoid opening untrusted and sensitive repos in the same window session."
+    },
+    {
+      "id": "risky_port_exposure",
+      "category": "ipc_exposure",
+      "resource_pattern": ".*",
+      "severity": "high",
+      "impact_statement": "Unauthenticated or sensitive local port is listening; malicious webpages could reach it via fetch() or DNS rebinding.",
+      "remediation": "Bind the service to authenticated localhost sockets only, or enable authentication."
+    },
+    {
+      "id": "new_cli_tool",
+      "category": "cli_tool",
+      "resource_pattern": ".*",
+      "severity": "low",
+      "impact_statement": "A new CLI developer tool appeared on PATH, expanding machine attack surface.",
+      "remediation": "Confirm the installation was intentional; remove binary from PATH if unrecognized."
+    }
+  ],
+  "severity_weights": {
+    "critical": 25,
+    "high": 15,
+    "medium": 8,
+    "low": 3
+  }
+}
