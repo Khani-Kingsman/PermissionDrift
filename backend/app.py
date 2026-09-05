@@ -296,16 +296,26 @@ def get_engine_status():
 
 @app.route("/api/engine/toggle", methods=["POST"])
 @app.route("/engine/toggle", methods=["POST"])
+@app.route("/api/engine/start", methods=["POST"])
+@app.route("/engine/start", methods=["POST"])
+@app.route("/api/engine/stop", methods=["POST"])
+@app.route("/engine/stop", methods=["POST"])
 def toggle_engine():
     from backend.engine import engine
+    path = request.path
     data = request.get_json(silent=True) or {}
-    action = data.get("action")  # "start", "stop", or "toggle"
     interval = data.get("interval_sec", 300)
 
-    if action == "start" or (action == "toggle" and not engine.is_running):
+    if path.endswith("/start"):
         engine.start(interval_sec=interval)
-    elif action == "stop" or (action == "toggle" and engine.is_running):
+    elif path.endswith("/stop"):
         engine.stop()
+    else:
+        action = data.get("action")  # "start", "stop", or "toggle"
+        if action == "start" or (action == "toggle" and not engine.is_running):
+            engine.start(interval_sec=interval)
+        elif action == "stop" or (action == "toggle" and engine.is_running):
+            engine.stop()
 
     return jsonify(engine.get_status())
 

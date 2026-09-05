@@ -1,4 +1,4 @@
-﻿"""
+"""
 PermissionDrift Continuous Background Security Engine.
 Runs silent periodic scans, detects permission drift in real-time,
 and dispatches Windows Desktop Toast notifications when unauthorized access is discovered.
@@ -72,12 +72,26 @@ class SecurityEngine:
     def run_single_cycle(self) -> Dict[str, Any]:
         """Runs an individual scan cycle and dispatches alert if drift is detected."""
         try:
+            # CPU protection: Defer if machine is under heavy load (e.g. gaming, rendering, compiling)
+            import psutil
+            try:
+                cpu_load = psutil.cpu_percent(interval=0.1)
+                if cpu_load > 85.0:
+                    logger.info(f"System CPU usage is high ({cpu_load}%). Deferring scan to protect user workload.")
+                    return {"status": "deferred_high_cpu", "cpu": cpu_load}
+                
+                # Enforce low process priority so foreground games and apps have 100% priority
+                proc = psutil.Process()
+                proc.nice(psutil.BELOW_NORMAL_PRIORITY_CLASS)
+            except Exception:
+                pass
+
             self.last_scan_time = time.time()
             latest = get_latest_snapshot()
             prev_names = set(latest.get("all_process_names", [])) if latest else None
             baseline = get_baseline_snapshot()
 
-            scanner = WindowsSecurityScanner(wall_clock_budget_sec=10.0)
+            scanner = WindowsSecurityScanner(wall_clock_budget_sec=8.0)
             snapshot = scanner.run_scan(previous_process_names=prev_names)
 
             is_first = (latest is None)
@@ -103,8 +117,12 @@ class SecurityEngine:
             if (critical_events or delta > 0) and self.notifications_enabled:
                 headline = critical_events[0]["headline"] if critical_events else f"Blast radius increased (+{delta})"
                 title = f"🚨 PermissionDrift Alert: Blast Radius {blast_score}"
-                body = f"{headline}. Open dashboard to review forensics."
-                notify_drift_event(title, body)
+                body = f"{headline}. Click to view impact."
+                notify_drift_event(
+                    title=title,
+                    message=body,
+                    redirect_url="http://127.0.0.1:5000/#drift-events"
+                )
 
                 alert_record = {
                     "timestamp": time.time(),

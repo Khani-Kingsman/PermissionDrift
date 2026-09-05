@@ -18,6 +18,7 @@ import {
   apiSetBaseline,
   snapshotToTrees,
   apiGetEngineStatus,
+  apiToggleEngine,
   type EngineStatus,
 } from './lib/api';
 import type {
@@ -41,6 +42,9 @@ import {
   Sparkles,
   Moon,
   Sun,
+  Play,
+  Square,
+  Settings,
 } from 'lucide-react';
 
 function fmt(ts: string) {
@@ -155,6 +159,30 @@ export default function App() {
     const interval = setInterval(loadEngineStatus, 8000);
     return () => clearInterval(interval);
   }, [loadAll, loadEngineStatus]);
+
+  useEffect(() => {
+    const handleHash = () => {
+      if (window.location.hash === '#drift-events') {
+        setTimeout(() => {
+          const el = document.getElementById('drift-events');
+          if (el) el.scrollIntoView({ behavior: 'smooth' });
+        }, 300);
+      }
+    };
+    handleHash();
+    window.addEventListener('hashchange', handleHash);
+    return () => window.removeEventListener('hashchange', handleHash);
+  }, []);
+
+  const handleToggleEngineDirect = async () => {
+    try {
+      const action = engineStatus?.running ? 'stop' : 'start';
+      const next = await apiToggleEngine(action);
+      setEngineStatus(next);
+    } catch (e: any) {
+      setError(e.message || 'Failed to toggle engine');
+    }
+  };
 
   useEffect(() => {
     const { baselineTree: bt, currentTree: ct } = snapshotToTrees(baselineSnap, currentSnap);
@@ -312,23 +340,44 @@ export default function App() {
               </button>
             </div>
 
-            <button
-              onClick={() => setEngineModalOpen(true)}
-              className={`px-3 py-1.5 rounded-lg border font-geist-mono text-xs flex items-center gap-2 transition-all cursor-pointer shadow-sm font-medium ${
-                engineStatus?.running
-                  ? isBlack
-                    ? 'border-emerald-500/40 bg-emerald-950/40 text-emerald-300 hover:bg-emerald-900/50'
-                    : 'border-emerald-300 bg-emerald-50 text-emerald-800 hover:bg-emerald-100/70'
-                  : isBlack
-                  ? 'border-neutral-700 bg-neutral-900/80 text-neutral-300 hover:text-white hover:bg-neutral-800'
-                  : 'border-neutral-300 bg-white text-neutral-700 hover:text-black hover:bg-neutral-50'
-              }`}
-              title="Background Security Engine & Windows Boot Autostart"
-            >
-              <span className={`w-2 h-2 rounded-full ${engineStatus?.running ? 'bg-emerald-500 animate-pulse' : 'bg-neutral-500'}`} />
-              <Shield className="w-3.5 h-3.5" />
-              <span>{engineStatus?.running ? 'Engine Active' : 'Start Engine'}</span>
-            </button>
+            {/* Direct Start / Stop Engine Toggle Button (Turns RED when running) */}
+            <div className="flex items-center gap-1.5">
+              <button
+                type="button"
+                onClick={handleToggleEngineDirect}
+                className={`px-3.5 py-1.5 rounded-lg font-geist-mono text-xs flex items-center gap-2 transition-all cursor-pointer shadow-md font-bold ${
+                  engineStatus?.running
+                    ? 'bg-rose-600 hover:bg-rose-700 text-white shadow-[0_0_15px_rgba(225,29,72,0.4)] ring-1 ring-rose-400 animate-pulse'
+                    : 'bg-emerald-600 hover:bg-emerald-700 text-white shadow-[0_0_15px_rgba(5,150,105,0.3)] ring-1 ring-emerald-400'
+                }`}
+                title={engineStatus?.running ? "Click to Stop Background Engine" : "Click to Start Background Engine"}
+              >
+                {engineStatus?.running ? (
+                  <>
+                    <Square className="w-3 h-3 fill-current" />
+                    <span>Stop Engine</span>
+                  </>
+                ) : (
+                  <>
+                    <Play className="w-3 h-3 fill-current" />
+                    <span>Start Engine</span>
+                  </>
+                )}
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setEngineModalOpen(true)}
+                className={`p-1.5 rounded-lg border transition-colors cursor-pointer ${
+                  isBlack
+                    ? 'border-neutral-800 hover:bg-neutral-800 text-neutral-400 hover:text-white'
+                    : 'border-neutral-200 hover:bg-neutral-100 text-neutral-600 hover:text-black'
+                }`}
+                title="Configure Windows Boot Autostart & Notifications"
+              >
+                <Settings className="w-4 h-4" />
+              </button>
+            </div>
 
             <button
               onClick={() => setAiModalOpen(true)}
@@ -445,17 +494,26 @@ export default function App() {
                 Run Scan Now →
               </button>
               <button
-                onClick={() => setEngineModalOpen(true)}
-                className={`inline-flex items-center gap-1.5 text-xs font-geist-mono uppercase tracking-wider font-semibold transition-colors cursor-pointer ${
+                type="button"
+                onClick={handleToggleEngineDirect}
+                className={`inline-flex items-center gap-2 px-3.5 py-1.5 rounded-xl text-xs font-geist-mono font-bold transition-all cursor-pointer shadow-md ${
                   engineStatus?.running
-                    ? 'text-emerald-500 hover:text-emerald-400'
-                    : isBlack
-                    ? 'text-neutral-400 hover:text-neutral-200'
-                    : 'text-neutral-600 hover:text-neutral-900'
+                    ? 'bg-rose-600 hover:bg-rose-700 text-white shadow-[0_0_15px_rgba(225,29,72,0.4)] ring-1 ring-rose-400 animate-pulse'
+                    : 'bg-emerald-600 hover:bg-emerald-700 text-white shadow-[0_0_15px_rgba(5,150,105,0.3)] ring-1 ring-emerald-400'
                 }`}
+                title={engineStatus?.running ? "Click to Stop Background Engine" : "Click to Start Background Engine"}
               >
-                <Shield className="w-3.5 h-3.5" />
-                <span>{engineStatus?.running ? '● Engine Running' : '⚙️ Setup Autostart →'}</span>
+                {engineStatus?.running ? (
+                  <>
+                    <Square className="w-3.5 h-3.5 fill-current" />
+                    <span>Stop Engine</span>
+                  </>
+                ) : (
+                  <>
+                    <Play className="w-3.5 h-3.5 fill-current" />
+                    <span>Start Engine</span>
+                  </>
+                )}
               </button>
             </div>
           </div>

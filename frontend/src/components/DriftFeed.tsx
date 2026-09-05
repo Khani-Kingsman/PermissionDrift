@@ -549,7 +549,7 @@ export const DriftFeed: React.FC<DriftFeedProps> = ({ events, loading, theme = '
   }
 
   return (
-    <div className={`rounded-2xl border backdrop-blur-md p-6 transition-all ${
+    <div id="drift-events" className={`rounded-2xl border backdrop-blur-md p-6 transition-all scroll-mt-24 ${
       isBlack
         ? 'border-neutral-800/80 bg-[#0f1219]/85 text-white shadow-[0_4px_24px_rgba(0,0,0,0.5)]'
         : 'border-neutral-200/80 bg-white/75 text-neutral-900 shadow-sm hover:shadow-md'

@@ -23,10 +23,13 @@ param (
 
 $TaskName = "PermissionDrift_Scan"
 $ProjectDir = (Get-Item $PSScriptRoot).Parent.FullName
-$PythonExe = (Get-Command python.exe -ErrorAction SilentlyContinue).Source
+$PythonExe = (Get-Command pythonw.exe -ErrorAction SilentlyContinue).Source
+if (-not $PythonExe) {
+    $PythonExe = (Get-Command python.exe -ErrorAction SilentlyContinue).Source
+}
 
 if (-not $PythonExe) {
-    Write-Error "Python was not found on PATH. Please ensure python.exe is available."
+    Write-Error "Python was not found on PATH. Please ensure pythonw.exe or python.exe is available."
     exit 1
 }
 

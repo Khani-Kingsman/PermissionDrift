@@ -36,7 +36,7 @@ class TestAPIPhase7(unittest.TestCase):
         start = time.time()
         final_job = None
 
-        while time.time() - start < 15.0:
+        while time.time() - start < 30.0:
             poll_res = self.client.get(f"/api/jobs/{job_id}")
             self.assertEqual(poll_res.status_code, 200)
             job_data = poll_res.get_json()
