@@ -299,7 +299,7 @@
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4 font-mono text-xs">
           <div class="p-3.5 rounded-xl bg-black/40 border border-slate-800">
             <span class="text-slate-500 block mb-1 uppercase tracking-wider text-[10px]">Resource Target</span>
-            <span class="text-cyan-300 font-bold">C:\Users\solob\.aws</span>
+            <span class="text-cyan-300 font-bold">C:\Users\Developer\.aws</span>
           </div>
           <div class="p-3.5 rounded-xl bg-black/40 border border-slate-800">
             <span class="text-slate-500 block mb-1 uppercase tracking-wider text-[10px]">Accessor / Trigger</span>
@@ -335,8 +335,8 @@
               <span>3. Automated Remediation Command (Provided by Gemini)</span>
             </div>
             <pre class="bg-black text-emerald-300 p-3 rounded-lg font-mono text-xs overflow-x-auto whitespace-pre-wrap border border-emerald-950"># Lock ACLs to current user only &amp; strip broad group permissions:
-icacls "C:\Users\solob\.aws" /inheritance:r /grant:r "solob:(OI)(CI)F"
-icacls "C:\Users\solob\.aws" /remove "NT AUTHORITY\Authenticated Users" /remove "Everyone"</pre>
+icacls "%USERPROFILE%\.aws" /inheritance:r /grant:r "%USERNAME%:(OI)(CI)F"
+icacls "%USERPROFILE%\.aws" /remove "NT AUTHORITY\Authenticated Users" /remove "Everyone"</pre>
           </div>
         </div>
       </div>

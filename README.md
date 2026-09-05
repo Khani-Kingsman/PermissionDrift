@@ -14,7 +14,7 @@
   <a href="https://github.com/Khani-Kingsman/PermissionDrift/blob/main/LICENSE"><img src="https://img.shields.io/badge/License-MIT-blue.svg?style=for-the-badge" alt="License: MIT"/></a>
   <a href="https://www.python.org/downloads/"><img src="https://img.shields.io/badge/Python-3.10%2B-cyan.svg?style=for-the-badge&logo=python" alt="Python 3.10+"/></a>
   <a href="https://react.dev/"><img src="https://img.shields.io/badge/Frontend-React%2019%20%2B%20Three.js-blueviolet.svg?style=for-the-badge&logo=react" alt="React 19 + Three.js"/></a>
-  <a href="https://github.com/Khani-Kingsman/PermissionDrift/actions"><img src="https://img.shields.io/badge/Tests-11%20Passing-success.svg?style=for-the-badge&logo=githubactions" alt="Tests"/></a>
+  <a href="https://github.com/Khani-Kingsman/PermissionDrift/actions"><img src="https://img.shields.io/badge/Tests-13%20Passing-success.svg?style=for-the-badge&logo=githubactions" alt="Tests"/></a>
   <a href="https://ai.google.dev/"><img src="https://img.shields.io/badge/AI-Gemini%202.5%20Flash-orange.svg?style=for-the-badge&logo=google" alt="Gemini AI"/></a>
 </p>
 
@@ -228,7 +228,7 @@ PermissionDrift inspects processes and credential directory metadata — the sam
 ```powershell
 python -m unittest discover tests
 ```
-All 11 unit tests cover:
+All 13 unit tests cover:
 - Standalone SQLite storage, baseline schemas, and 30-day auto-pruning.
 - Diff engine, risk mapping, credential hierarchy, and blast radius scoring.
 - Passive localhost listening port detection and safe heuristic risk assignments.
