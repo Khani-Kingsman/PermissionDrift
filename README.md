@@ -1,8 +1,22 @@
-# PermissionDrift
+<p align="center">
+  <img src="logo-dark.png" width="130" alt="PermissionDrift Logo" />
+</p>
 
-> **A Windows-Only, Local-First Developer Security Posture Monitor.**
->
-> Snapshots what your development machine can access (SSH keys, cloud CLI credentials, Docker Desktop named pipes, Kubernetes configs, browser extensions, installed CLI tools, and listening local ports) and alerts you to **silent permission drift** over time with plain-English impact statements and actionable remediation recipes.
+<h1 align="center">PermissionDrift</h1>
+
+<p align="center">
+  <strong>A Windows-Only, Local-First Developer Security Posture Monitor.</strong><br>
+  <em>Snapshots what your workstation processes can access and catches silent privilege drift before infostealers do.</em>
+</p>
+
+<p align="center">
+  <a href="https://github.com/Khani-Kingsman/PermissionDrift/stargazers"><img src="https://img.shields.io/github/stars/Khani-Kingsman/PermissionDrift?style=for-the-badge&logo=github&color=f97316" alt="GitHub Stars"/></a>
+  <a href="https://github.com/Khani-Kingsman/PermissionDrift/blob/main/LICENSE"><img src="https://img.shields.io/badge/License-MIT-blue.svg?style=for-the-badge" alt="License: MIT"/></a>
+  <a href="https://www.python.org/downloads/"><img src="https://img.shields.io/badge/Python-3.10%2B-cyan.svg?style=for-the-badge&logo=python" alt="Python 3.10+"/></a>
+  <a href="https://react.dev/"><img src="https://img.shields.io/badge/Frontend-React%2019%20%2B%20Three.js-blueviolet.svg?style=for-the-badge&logo=react" alt="React 19 + Three.js"/></a>
+  <a href="https://github.com/Khani-Kingsman/PermissionDrift/actions"><img src="https://img.shields.io/badge/Tests-11%20Passing-success.svg?style=for-the-badge&logo=githubactions" alt="Tests"/></a>
+  <a href="https://ai.google.dev/"><img src="https://img.shields.io/badge/AI-Gemini%202.5%20Flash-orange.svg?style=for-the-badge&logo=google" alt="Gemini AI"/></a>
+</p>
 
 ---
 
@@ -214,7 +228,36 @@ PermissionDrift inspects processes and credential directory metadata — the sam
 ```powershell
 python -m unittest discover tests
 ```
-All 9 unit tests cover:
-- Standalone SQLite storage and 30-day auto-pruning.
-- Diff engine, risk mapping, and blast radius scoring.
+All 11 unit tests cover:
+- Standalone SQLite storage, baseline schemas, and 30-day auto-pruning.
+- Diff engine, risk mapping, credential hierarchy, and blast radius scoring.
+- Passive localhost listening port detection and safe heuristic risk assignments.
 - Flask API async execution and job polling under 100ms.
+
+---
+
+## 📈 Star History
+
+If you find PermissionDrift useful in hardening your developer machine, give us a star on GitHub! It helps more developers discover the project.
+
+<p align="center">
+  <a href="https://star-history.com/#Khani-Kingsman/PermissionDrift&Date">
+    <img src="https://api.star-history.com/svg?repos=Khani-Kingsman/PermissionDrift&type=Date" alt="Star History Chart" style="width: 100%; max-width: 700px;"/>
+  </a>
+</p>
+
+---
+
+## 🤝 Contributing
+
+Contributions, feature requests, and credential provider suggestions are warmly welcome!
+- See [CONTRIBUTING.md](CONTRIBUTING.md) to get started.
+- Check open issues or suggest a new feature using the issue templates.
+- Security vulnerabilities should be disclosed following our [SECURITY.md](SECURITY.md) guidelines.
+
+---
+
+## 📄 License
+
+This project is licensed under the [MIT License](LICENSE) — free to use for personal and commercial developer environments.
+
