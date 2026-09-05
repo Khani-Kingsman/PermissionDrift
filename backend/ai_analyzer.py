@@ -16,11 +16,11 @@ logger = logging.getLogger("PermissionDriftAI")
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 ENV_FILE = PROJECT_ROOT / ".env"
 
-# Active supported models in priority order
+# Active supported models in priority order (3.5-flash-lite is fastest ~1.5s)
 CANDIDATE_MODELS = [
+    "gemini-3.5-flash-lite",
+    "gemini-3.5-flash",
     "gemini-3.6-flash",
-    "gemini-3.7-flash",
-    "gemini-1.5-flash",
 ]
 
 
@@ -56,8 +56,8 @@ def is_ai_configured(explicit_key: Optional[str] = None) -> bool:
     return bool(key and len(key) > 5)
 
 
-def _call_gemini(prompt: str, api_key: str) -> str:
-    """Calls Gemini API with automatic model fallback."""
+def _call_gemini(prompt: str, api_key: str) -> tuple:
+    """Calls Gemini API with automatic model fallback. Returns (text, model_name)."""
     from google import genai
     from google.genai import types
 
@@ -66,24 +66,17 @@ def _call_gemini(prompt: str, api_key: str) -> str:
 
     for model_name in CANDIDATE_MODELS:
         try:
-            # Set thinking_budget=0 on 3.7 to prevent slow dynamic thinking delays
             config = types.GenerateContentConfig(
                 temperature=0.2,
-                max_output_tokens=2048,
+                max_output_tokens=3500,
             )
-            if "3.7" in model_name:
-                try:
-                    config.thinking_config = types.ThinkingConfig(thinking_budget=0)
-                except Exception:
-                    pass
-
             response = client.models.generate_content(
                 model=model_name,
                 contents=prompt,
                 config=config
             )
             if response.text:
-                return response.text
+                return response.text, model_name
         except Exception as e:
             last_err = e
             logger.warning(f"Model {model_name} failed: {e}. Trying fallback...")
@@ -91,7 +84,7 @@ def _call_gemini(prompt: str, api_key: str) -> str:
 
     if last_err:
         raise last_err
-    return ""
+    return "", "none"
 
 
 def analyze_drift_event(
@@ -134,41 +127,39 @@ EVENT METADATA:
 - Preliminary Observation: {impact_statement}
 - Current Host & User: {host} (User: {username})
 
-Provide an authoritative, highly detailed, practical cyber-forensic analysis in structured Markdown.
-Make sure you provide real, genuine technical depth — explain the actual software tools involved, where they run on Windows, what files or sockets are involved, what attacks look like in practice, and how to reduce the blast radius:
+Provide an authoritative, highly detailed, real-world cyber-forensic analysis in structured Markdown.
+Directly output the following 5 sections in order. Do NOT output any introductory memo, header block, or meta-instructions:
 
-### 1. What This Program / Resource Is About
-Explain in depth what this software, process, or directory actually is in real-world software engineering (e.g. AWS CLI / SDK credentials directory storing `credentials`, `config`, session tokens; or Docker Engine named pipe; or a process like VSCode or Python opening loopback listeners). Explain what files or tokens live here, what developer tools interact with it (e.g. AWS CLI, boto3, Terraform, SDKs), and why it exists.
+### 1. What This Program & Resource Is About
+Explain in genuine technical depth what `{accessor}` and `{resource}` are. Describe the files or secrets stored here (credentials, config, IAM session tokens, certificates), what developer tools interact with it (AWS CLI, boto3, Terraform, SDKs, Docker daemon), and why this resource exists.
 
 ### 2. Execution & Location Context
-Explain where and how it is running on Windows (e.g. `{resource}`, file system permissions like 777 or Everyone-access, or 127.0.0.1 loopback listening socket). Explain why the transition from '{previous_state}' to '{current_state}' represents a dangerous drift or widened attack surface.
+Explain where and how `{accessor}` is running on Windows. Detail the Win32 handle creation (`CreateFileW`), why the transition from '{previous_state}' to '{current_state}' represents privilege drift, and what execution context (background script, Jupyter, AI agent, malicious dependency) could trigger this handle.
 
-### 3. Real-World Security Impact
-Explain what happens if this resource or handle is weaponized. Detail realistic attack scenarios:
-- Infostealer malware (Lumma, RedLine, Vidar) scanning for this specific path or port.
-- Cloud account takeover / lateral movement (S3 bucket enumeration, IAM privilege escalation, EC2 instance creation, database dumps).
-- Supply-chain npm/pip packages or malicious VSCode extensions reading user tokens.
-- Ransomware or unauthorized execution.
+### 3. Real-World Attack Impact
+Detail realistic, practical attack scenarios if this process is unauthorized or weaponized:
+- Infostealer malware (Lumma, RedLine, Vidar) scanning this path.
+- AWS/Cloud account takeover: S3 data exfiltration, IAM privilege escalation, EC2 crypto-mining, database snapshots.
+- Supply-chain npm/pip packages or malicious extensions reading user tokens.
 
-### 4. How to Reduce the Impact & Harden
-Provide concrete, defense-in-depth architectural steps to minimize the blast radius:
-- Restricting filesystem permissions to only `{username}` using Windows ACLs.
+### 4. How to Reduce the Blast Radius
+Provide concrete, defense-in-depth architectural steps to minimize risk:
 - Migrating from static long-lived credentials to AWS IAM Identity Center (SSO) or short-lived STS tokens.
 - Enforcing MFA on IAM roles and setting short session timeouts.
-- Least-privilege IAM policies and Service Control Policies (SCPs).
+- Restricting Windows NTFS filesystem permissions on `{resource}` so only `{username}` and SYSTEM have access.
 
 ### 5. Executable Windows Fix Commands
-Provide exact, copyable PowerShell and CMD commands that the developer can run right now in their terminal to:
-1. Audit current permissions and inspect holding processes.
-2. Remove broad permissions (e.g. `icacls "{resource}" /inheritance:r /grant:r "{username}:(OI)(CI)F"`).
-3. Verify that only `{username}` and SYSTEM have access.
+Provide exact, copyable PowerShell commands that the developer can run right now:
+```powershell
+# Commands to inspect PID, terminate if rogue, and lock permissions with icacls
+```
 """
 
     try:
-        response_text = _call_gemini(prompt, api_key=api_key)
+        response_text, model_used = _call_gemini(prompt, api_key=api_key)
         return {
             "ai_powered": True,
-            "model": "gemini-3.6-flash",
+            "model": model_used,
             "analysis_markdown": response_text,
             "resource": resource,
             "accessor": accessor,
@@ -350,10 +341,10 @@ Please write a comprehensive, executive cyber-posture assessment report in Markd
 
     if api_key:
         try:
-            report_markdown = _call_gemini(prompt, api_key=api_key)
+            report_markdown, model_used = _call_gemini(prompt, api_key=api_key)
             return {
                 "ai_powered": True,
-                "model": "gemini-3.6-flash",
+                "model": model_used,
                 "report_markdown": report_markdown,
                 "blast_radius_score": score,
                 "host": host,

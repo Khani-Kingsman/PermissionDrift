@@ -25,6 +25,72 @@ interface DriftFeedProps {
   theme?: 'black' | 'white';
 }
 
+function formatInline(text: string, isBlack: boolean) {
+  const parts = text.split(/(\*\*.*?\*\*|`.*?`)/g);
+  return parts.map((part, i) => {
+    if (part.startsWith('**') && part.endsWith('**')) {
+      return (
+        <strong key={i} className={`font-semibold ${isBlack ? 'text-white' : 'text-neutral-900'}`}>
+          {part.slice(2, -2)}
+        </strong>
+      );
+    }
+    if (part.startsWith('`') && part.endsWith('`')) {
+      return (
+        <code
+          key={i}
+          className={`px-1.5 py-0.5 rounded font-geist-mono text-[11px] ${
+            isBlack
+              ? 'bg-black/60 text-amber-300 border border-neutral-800'
+              : 'bg-neutral-100 text-amber-700 border border-neutral-200'
+          }`}
+        >
+          {part.slice(1, -1)}
+        </code>
+      );
+    }
+    return part;
+  });
+}
+
+function RenderBodyContent({ text, isBlack }: { text: string; isBlack: boolean }) {
+  const lines = text.split('\n');
+  return (
+    <div className="space-y-1.5">
+      {lines.map((line, idx) => {
+        const trimmed = line.trim();
+        if (!trimmed) return <div key={idx} className="h-1" />;
+
+        if (trimmed.startsWith('* ') || trimmed.startsWith('- ')) {
+          const bulletContent = trimmed.slice(2);
+          return (
+            <div key={idx} className="flex items-start gap-2 ml-1 text-xs leading-relaxed">
+              <span className="text-amber-500 font-bold shrink-0 mt-0.5">•</span>
+              <span className={isBlack ? 'text-neutral-300' : 'text-neutral-700'}>
+                {formatInline(bulletContent, isBlack)}
+              </span>
+            </div>
+          );
+        }
+
+        if (trimmed.startsWith('#### ') || trimmed.startsWith('### ')) {
+          return (
+            <div key={idx} className={`font-semibold text-xs mt-2.5 mb-1 ${isBlack ? 'text-neutral-200' : 'text-neutral-900'}`}>
+              {trimmed.replace(/^#{3,4}\s+/, '')}
+            </div>
+          );
+        }
+
+        return (
+          <p key={idx} className={`text-xs leading-relaxed ${isBlack ? 'text-neutral-300' : 'text-neutral-700'}`}>
+            {formatInline(trimmed, isBlack)}
+          </p>
+        );
+      })}
+    </div>
+  );
+}
+
 function MarkdownReportView({ markdown, isBlack = false }: { markdown: string; isBlack?: boolean }) {
   const [copiedCode, setCopiedCode] = useState<string | null>(null);
 
@@ -34,76 +100,80 @@ function MarkdownReportView({ markdown, isBlack = false }: { markdown: string; i
     setTimeout(() => setCopiedCode(null), 2000);
   };
 
-  // Parse sections starting with #, ##, or ###
-  const sections = markdown.split(/^#{1,3}\s+/m).filter(Boolean);
-
-  if (sections.length <= 1) {
-    return (
-      <div className={`whitespace-pre-wrap leading-relaxed font-sans text-xs p-4 rounded-xl border ${
-        isBlack
-          ? 'bg-[#121620] text-neutral-200 border-neutral-800'
-          : 'bg-white text-neutral-800 border-neutral-200'
-      }`}>
-        {markdown}
-      </div>
-    );
-  }
+  const rawSections = markdown.split(/(?=^#{1,3}\s+)/m).map((s) => s.trim()).filter(Boolean);
+  const sections = rawSections.length > 0 ? rawSections : [markdown];
 
   return (
-    <div className="space-y-4 font-sans text-xs">
+    <div className="space-y-4 font-sans text-xs mt-2">
       {sections.map((sec, idx) => {
-        const firstLineEnd = sec.indexOf('\n');
-        const title = firstLineEnd !== -1 ? sec.slice(0, firstLineEnd).trim() : sec.trim();
-        const body = firstLineEnd !== -1 ? sec.slice(firstLineEnd).trim() : '';
+        const headingMatch = sec.match(/^#{1,3}\s+(.+)$/m);
+        const title = headingMatch
+          ? headingMatch[1].replace(/^\d+\.\s*/, '').trim()
+          : idx === 0
+          ? 'Executive Security Briefing'
+          : 'Forensic Analysis Detail';
+        const bodyWithCode = headingMatch ? sec.replace(/^#{1,3}\s+.+$/m, '').trim() : sec;
 
-        const isAbout = title.toLowerCase().includes('what this') || title.toLowerCase().includes('about');
-        const isLocation = title.toLowerCase().includes('location') || title.toLowerCase().includes('execution');
-        const isImpact = title.toLowerCase().includes('impact');
-        const isHarden = title.toLowerCase().includes('reduce') || title.toLowerCase().includes('harden');
-        const isFix = title.toLowerCase().includes('command') || title.toLowerCase().includes('fix');
+        const titleLower = title.toLowerCase();
+        const isAbout = titleLower.includes('what') || titleLower.includes('about') || titleLower.includes('resource');
+        const isLocation = titleLower.includes('location') || titleLower.includes('execution') || titleLower.includes('why');
+        const isImpact = titleLower.includes('impact') || titleLower.includes('attack') || titleLower.includes('vector');
+        const isHarden = titleLower.includes('reduce') || titleLower.includes('harden') || titleLower.includes('blast');
+        const isFix = titleLower.includes('command') || titleLower.includes('fix') || titleLower.includes('remediation') || titleLower.includes('powershell');
 
-        // Extract code blocks if any
-        const codeBlockMatch = body.match(/```(?:powershell|cmd|bash)?\s*([\s\S]*?)```/);
+        const codeBlockMatch = bodyWithCode.match(/```(?:powershell|cmd|bash|json)?\s*([\s\S]*?)```/);
         const codeText = codeBlockMatch ? codeBlockMatch[1].trim() : null;
-        const plainText = codeBlockMatch ? body.replace(/```[\s\S]*?```/, '').trim() : body;
+        const plainText = codeBlockMatch ? bodyWithCode.replace(/```[\s\S]*?```/, '').trim() : bodyWithCode;
 
         return (
           <div
             key={idx}
             className={`p-4 rounded-xl border transition-all ${
               isImpact
-                ? isBlack ? 'bg-red-950/30 border-red-800/60 text-red-200' : 'bg-red-50/40 border-red-200 text-red-950'
+                ? isBlack
+                  ? 'bg-red-950/30 border-red-800/60 text-red-200'
+                  : 'bg-red-50/50 border-red-200 text-red-950'
                 : isHarden
-                ? isBlack ? 'bg-emerald-950/30 border-emerald-800/60 text-emerald-200' : 'bg-emerald-50/40 border-emerald-200 text-emerald-950'
+                ? isBlack
+                  ? 'bg-emerald-950/30 border-emerald-800/60 text-emerald-200'
+                  : 'bg-emerald-50/50 border-emerald-200 text-emerald-950'
                 : isFix
-                ? 'bg-black text-neutral-100 border-neutral-800'
-                : isBlack ? 'bg-[#161a24]/80 border-neutral-800 text-neutral-200' : 'bg-neutral-50/70 border-neutral-200 text-neutral-900'
+                ? isBlack
+                  ? 'bg-[#0f1219] text-neutral-100 border-neutral-700'
+                  : 'bg-neutral-900 text-white border-neutral-800'
+                : isLocation
+                ? isBlack
+                  ? 'bg-[#111622] border-blue-900/50 text-neutral-200'
+                  : 'bg-blue-50/40 border-blue-200 text-neutral-900'
+                : isBlack
+                ? 'bg-[#141824] border-neutral-800 text-neutral-200'
+                : 'bg-neutral-50/80 border-neutral-200 text-neutral-900'
             }`}
           >
-            <div className="flex items-center gap-2 mb-2 font-semibold text-xs font-geist-mono">
+            <div className="flex items-center gap-2 mb-2.5 font-semibold text-xs font-geist-mono">
               {isImpact && <AlertTriangle className="w-4 h-4 text-red-500" />}
               {isHarden && <ShieldCheck className="w-4 h-4 text-emerald-500" />}
               {isFix && <Terminal className="w-4 h-4 text-amber-400" />}
               {isLocation && <Zap className="w-4 h-4 text-blue-400" />}
-              {isAbout && <Info className={`w-4 h-4 ${isBlack ? 'text-neutral-400' : 'text-neutral-700'}`} />}
-              <span>{title}</span>
+              {isAbout && <Info className={`w-4 h-4 ${isBlack ? 'text-amber-400' : 'text-amber-600'}`} />}
+              {!isImpact && !isHarden && !isFix && !isLocation && !isAbout && (
+                <Sparkles className="w-4 h-4 text-amber-400" />
+              )}
+              <span className="tracking-wide uppercase text-[11px]">{title}</span>
             </div>
 
-            {plainText && (
-              <p className={`whitespace-pre-line leading-relaxed ${
-                isFix ? 'text-neutral-300' : isBlack ? 'text-neutral-300' : 'text-neutral-700'
-              }`}>
-                {plainText}
-              </p>
-            )}
+            {plainText && <RenderBodyContent text={plainText} isBlack={isBlack} />}
 
             {codeText && (
               <div className="mt-3 relative">
-                <div className="flex items-center justify-between px-3 py-1.5 bg-black/70 border border-neutral-700/60 rounded-t-lg text-[11px] font-geist-mono text-neutral-400">
-                  <span>PowerShell Remediation Code</span>
+                <div className="flex items-center justify-between px-3 py-1.5 bg-black/80 border border-neutral-700 rounded-t-lg text-[11px] font-geist-mono text-neutral-400">
+                  <span className="flex items-center gap-1.5 text-neutral-300">
+                    <Terminal className="w-3.5 h-3.5 text-amber-400" />
+                    Executable PowerShell Fix Command
+                  </span>
                   <button
                     onClick={() => handleCopy(codeText, `code-${idx}`)}
-                    className="flex items-center gap-1 hover:text-white transition-colors cursor-pointer text-[10px]"
+                    className="flex items-center gap-1 hover:text-white transition-colors cursor-pointer text-[10px] px-2 py-0.5 rounded bg-neutral-800 border border-neutral-700"
                   >
                     {copiedCode === `code-${idx}` ? (
                       <>
@@ -113,12 +183,12 @@ function MarkdownReportView({ markdown, isBlack = false }: { markdown: string; i
                     ) : (
                       <>
                         <Copy className="w-3 h-3" />
-                        <span>Copy</span>
+                        <span>Copy Code</span>
                       </>
                     )}
                   </button>
                 </div>
-                <pre className="bg-black text-emerald-300 p-3 rounded-b-lg font-geist-mono text-xs overflow-x-auto whitespace-pre-wrap border-x border-b border-neutral-700/60">
+                <pre className="bg-black text-emerald-300 p-3.5 rounded-b-lg font-geist-mono text-xs overflow-x-auto whitespace-pre-wrap border-x border-b border-neutral-700 leading-relaxed">
                   {codeText}
                 </pre>
               </div>
