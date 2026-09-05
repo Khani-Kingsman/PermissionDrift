@@ -30,10 +30,15 @@ export const ThreeHeroBackground: React.FC<ThreeHeroBackgroundProps> = ({ theme 
     const camera = new THREE.PerspectiveCamera(75, width / height, 0.1, 1000);
     camera.position.z = 32;
 
-    const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+    const renderer = new THREE.WebGLRenderer({
+      antialias: false,
+      alpha: true,
+      powerPreference: 'low-power',
+      precision: 'mediump'
+    });
     rendererRef.current = renderer;
     renderer.setSize(width, height);
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.25));
     renderer.setClearColor(isBlack ? 0x07080c : 0xffffff, 1);
     container.appendChild(renderer.domElement);
 
@@ -134,9 +139,21 @@ export const ThreeHeroBackground: React.FC<ThreeHeroBackgroundProps> = ({ theme 
 
     window.addEventListener('mousemove', handleMouseMove);
 
-    // Animation Loop
+    // Animation Loop with power-saving and context-loss resilience
     let animationFrameId: number;
+    let isRunning = true;
+
+    const onContextLost = (e: Event) => {
+      e.preventDefault();
+      isRunning = false;
+      cancelAnimationFrame(animationFrameId);
+    };
+
+    const canvas = renderer.domElement;
+    canvas.addEventListener('webglcontextlost', onContextLost);
+
     const animate = () => {
+      if (!isRunning || document.hidden) return;
       animationFrameId = requestAnimationFrame(animate);
 
       targetX = mouseX * 0.4;
@@ -149,6 +166,16 @@ export const ThreeHeroBackground: React.FC<ThreeHeroBackgroundProps> = ({ theme 
       renderer.render(scene, camera);
     };
 
+    const onVisibilityChange = () => {
+      if (document.hidden) {
+        cancelAnimationFrame(animationFrameId);
+      } else if (isRunning) {
+        cancelAnimationFrame(animationFrameId);
+        animate();
+      }
+    };
+
+    document.addEventListener('visibilitychange', onVisibilityChange);
     animate();
 
     const onResize = () => {
@@ -163,7 +190,10 @@ export const ThreeHeroBackground: React.FC<ThreeHeroBackgroundProps> = ({ theme 
     window.addEventListener('resize', onResize);
 
     return () => {
+      isRunning = false;
       cancelAnimationFrame(animationFrameId);
+      canvas.removeEventListener('webglcontextlost', onContextLost);
+      document.removeEventListener('visibilitychange', onVisibilityChange);
       window.removeEventListener('mousemove', handleMouseMove);
       window.removeEventListener('resize', onResize);
       if (renderer.domElement && container.contains(renderer.domElement)) {

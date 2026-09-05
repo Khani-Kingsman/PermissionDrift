@@ -14,20 +14,13 @@ REG_PATH = r"Software\Microsoft\Windows\CurrentVersion\Run"
 APP_NAME = "PermissionDrift"
 
 def get_launch_command() -> str:
-    """Returns the silent execution command for PermissionDrift."""
+    """Returns the windowless execution command for PermissionDrift using pythonw.exe."""
     project_root = Path(__file__).resolve().parent.parent
-    vbs_path = project_root / "scripts" / "start_silent.vbs"
-    
-    # If the VBS runner exists, use wscript to guarantee 0 console window
-    if vbs_path.exists():
-        return f'wscript.exe "{vbs_path}"'
-    
-    # Fallback to pythonw.exe with run_silent.py
     python_dir = Path(sys.executable).parent
     pythonw = python_dir / "pythonw.exe"
     if not pythonw.exists():
         pythonw = Path(sys.executable)
-    
+
     target_script = project_root / "backend" / "run_silent.py"
     return f'"{pythonw}" "{target_script}"'
 
