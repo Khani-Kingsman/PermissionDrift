@@ -12,6 +12,9 @@ import {
   Clock,
   Sparkles,
   Loader2,
+  Terminal,
+  ShieldCheck,
+  Zap,
 } from 'lucide-react';
 import type { DriftEvent, Severity } from '../types/drift';
 import { apiAnalyzeEvent } from '../lib/api';
@@ -19,6 +22,105 @@ import { apiAnalyzeEvent } from '../lib/api';
 interface DriftFeedProps {
   events: DriftEvent[];
   loading?: boolean;
+}
+
+function MarkdownReportView({ markdown }: { markdown: string }) {
+  const [copiedCode, setCopiedCode] = useState<string | null>(null);
+
+  const handleCopy = (code: string, id: string) => {
+    navigator.clipboard.writeText(code);
+    setCopiedCode(id);
+    setTimeout(() => setCopiedCode(null), 2000);
+  };
+
+  // Parse sections starting with #, ##, or ###
+  const sections = markdown.split(/^#{1,3}\s+/m).filter(Boolean);
+
+  if (sections.length <= 1) {
+    return (
+      <div className="whitespace-pre-wrap text-neutral-800 leading-relaxed font-sans text-xs bg-white p-4 rounded-xl border border-neutral-200">
+        {markdown}
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-4 font-sans text-xs">
+      {sections.map((sec, idx) => {
+        const firstLineEnd = sec.indexOf('\n');
+        const title = firstLineEnd !== -1 ? sec.slice(0, firstLineEnd).trim() : sec.trim();
+        const body = firstLineEnd !== -1 ? sec.slice(firstLineEnd).trim() : '';
+
+        const isAbout = title.toLowerCase().includes('what this') || title.toLowerCase().includes('about');
+        const isLocation = title.toLowerCase().includes('location') || title.toLowerCase().includes('execution');
+        const isImpact = title.toLowerCase().includes('impact');
+        const isHarden = title.toLowerCase().includes('reduce') || title.toLowerCase().includes('harden');
+        const isFix = title.toLowerCase().includes('command') || title.toLowerCase().includes('fix');
+
+        // Extract code blocks if any
+        const codeBlockMatch = body.match(/```(?:powershell|cmd|bash)?\s*([\s\S]*?)```/);
+        const codeText = codeBlockMatch ? codeBlockMatch[1].trim() : null;
+        const plainText = codeBlockMatch ? body.replace(/```[\s\S]*?```/, '').trim() : body;
+
+        return (
+          <div
+            key={idx}
+            className={`p-4 rounded-xl border transition-all ${
+              isImpact
+                ? 'bg-red-50/40 border-red-200 text-red-950'
+                : isHarden
+                ? 'bg-emerald-50/40 border-emerald-200 text-emerald-950'
+                : isFix
+                ? 'bg-neutral-900 text-neutral-100 border-neutral-800'
+                : 'bg-neutral-50/70 border-neutral-200 text-neutral-900'
+            }`}
+          >
+            <div className="flex items-center gap-2 mb-2 font-semibold text-xs font-geist-mono">
+              {isImpact && <AlertTriangle className="w-4 h-4 text-red-600" />}
+              {isHarden && <ShieldCheck className="w-4 h-4 text-emerald-600" />}
+              {isFix && <Terminal className="w-4 h-4 text-amber-400" />}
+              {isLocation && <Zap className="w-4 h-4 text-blue-600" />}
+              {isAbout && <Info className="w-4 h-4 text-neutral-700" />}
+              <span>{title}</span>
+            </div>
+
+            {plainText && (
+              <p className={`whitespace-pre-line leading-relaxed ${isFix ? 'text-neutral-300' : 'text-neutral-700'}`}>
+                {plainText}
+              </p>
+            )}
+
+            {codeText && (
+              <div className="mt-3 relative">
+                <div className="flex items-center justify-between px-3 py-1.5 bg-black/50 border border-neutral-700/60 rounded-t-lg text-[11px] font-geist-mono text-neutral-400">
+                  <span>PowerShell Remediation Code</span>
+                  <button
+                    onClick={() => handleCopy(codeText, `code-${idx}`)}
+                    className="flex items-center gap-1 hover:text-white transition-colors cursor-pointer text-[10px]"
+                  >
+                    {copiedCode === `code-${idx}` ? (
+                      <>
+                        <Check className="w-3 h-3 text-emerald-400" />
+                        <span className="text-emerald-400 font-semibold">Copied</span>
+                      </>
+                    ) : (
+                      <>
+                        <Copy className="w-3 h-3" />
+                        <span>Copy</span>
+                      </>
+                    )}
+                  </button>
+                </div>
+                <pre className="bg-black text-emerald-300 p-3 rounded-b-lg font-geist-mono text-xs overflow-x-auto whitespace-pre-wrap border-x border-b border-neutral-700/60">
+                  {codeText}
+                </pre>
+              </div>
+            )}
+          </div>
+        );
+      })}
+    </div>
+  );
 }
 
 const SEVERITY_BADGE: Record<Severity, string> = {
@@ -239,23 +341,23 @@ function DriftCard({ event, defaultOpen }: { event: DriftEvent; defaultOpen: boo
             </div>
 
             {aiResult && (
-              <div className="mt-3 p-4 rounded-xl border border-neutral-200 bg-white space-y-3 font-geist-mono text-xs">
-                {aiResult.ai_powered && aiResult.analysis_markdown ? (
-                  <div className="whitespace-pre-line text-neutral-800 leading-relaxed font-sans text-xs">
-                    {aiResult.analysis_markdown}
-                  </div>
+              <div className="mt-3">
+                {aiResult.analysis_markdown ? (
+                  <MarkdownReportView markdown={aiResult.analysis_markdown} />
                 ) : (
-                  <div className="space-y-2">
-                    <div className="p-2.5 rounded-lg bg-neutral-50 border border-neutral-200">
+                  <div className="p-4 rounded-xl border border-neutral-200 bg-white space-y-3 font-geist-mono text-xs">
+                    <div className="p-3 rounded-lg bg-neutral-50 border border-neutral-200">
                       <strong className="text-neutral-900 block mb-1">Forensic Analysis:</strong>
-                      <p className="text-neutral-600 font-sans text-xs">{aiResult.forensic_summary}</p>
+                      <p className="text-neutral-700 font-sans text-xs">{aiResult.forensic_summary}</p>
                     </div>
-                    <div className="p-2.5 rounded-lg bg-amber-50/50 border border-amber-200">
-                      <strong className="text-amber-900 block mb-1">Threat Vector:</strong>
-                      <p className="text-amber-800 font-sans text-xs">{aiResult.threat_vector}</p>
-                    </div>
+                    {aiResult.threat_vector && (
+                      <div className="p-3 rounded-lg bg-red-50/50 border border-red-200">
+                        <strong className="text-red-950 block mb-1">Threat Vector:</strong>
+                        <p className="text-red-800 font-sans text-xs">{aiResult.threat_vector}</p>
+                      </div>
+                    )}
                     {aiResult.recommended_actions && (
-                      <div className="p-2.5 rounded-lg bg-neutral-50 border border-neutral-200">
+                      <div className="p-3 rounded-lg bg-neutral-50 border border-neutral-200">
                         <strong className="text-neutral-900 block mb-1">Recommended Actions:</strong>
                         <ul className="list-disc pl-4 space-y-1 text-neutral-600 font-sans text-xs">
                           {aiResult.recommended_actions.map((act: string, idx: number) => (
