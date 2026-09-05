@@ -8,7 +8,7 @@
 
 ## 🎯 Core Promise
 
-> *"Your VSCode didn't have access to `~/.aws`. It does now. Here's why that matters."*
+> *"Your VSCode didn't have access to `~/.aws` on Monday. It does now. Here's why that matters."*
 
 ---
 
