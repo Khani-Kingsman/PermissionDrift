@@ -1,0 +1,429 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PermissionDrift — Executive Project Summary & Technical Brief</title>
+  
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+  
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Inter', 'system-ui', 'sans-serif'],
+            display: ['Space Grotesk', 'sans-serif'],
+            mono: ['JetBrains Mono', 'monospace'],
+          },
+          colors: {
+            brand: {
+              black: '#0a0d14',
+              dark: '#111622',
+              card: '#161c2b',
+              cyan: '#06b6d4',
+              amber: '#f59e0b',
+              red: '#ef4444',
+              emerald: '#10b981',
+            }
+          }
+        }
+      }
+    }
+  </script>
+
+  <style>
+    body {
+      background-color: #080b11;
+      color: #e2e8f0;
+    }
+    .grid-pattern {
+      background-image: linear-gradient(to right, rgba(14, 22, 38, 0.6) 1px, transparent 1px),
+                        linear-gradient(to bottom, rgba(14, 22, 38, 0.6) 1px, transparent 1px);
+      background-size: 3rem 3rem;
+    }
+    .badge-glow {
+      box-shadow: 0 0 15px rgba(6, 182, 212, 0.2);
+    }
+    @media print {
+      body {
+        background-color: #ffffff;
+        color: #1a202c;
+      }
+      .no-print {
+        display: none !important;
+      }
+      .print-border {
+        border-color: #e2e8f0 !important;
+      }
+    }
+  </style>
+</head>
+<body class="font-sans antialiased selection:bg-cyan-500/30 selection:text-cyan-200 min-h-screen relative">
+
+  <!-- Background Texture -->
+  <div class="fixed inset-0 grid-pattern pointer-events-none z-0 opacity-40"></div>
+  <div class="fixed top-0 left-1/2 -translate-x-1/2 w-[1000px] h-[400px] bg-cyan-500/10 blur-[130px] rounded-full pointer-events-none z-0"></div>
+
+  <!-- Main Container -->
+  <div class="relative z-10 max-w-5xl mx-auto px-6 py-12">
+
+    <!-- Top Action Bar -->
+    <div class="flex items-center justify-between pb-8 mb-8 border-b border-slate-800/80 no-print">
+      <div class="flex items-center gap-2 font-mono text-xs text-slate-400">
+        <span class="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></span>
+        <span>EXECUTIVE TECHNICAL BRIEF</span>
+        <span class="text-slate-600">·</span>
+        <span class="text-cyan-400 font-semibold">CONFIDENTIAL &amp; SHAREABLE</span>
+      </div>
+      <div class="flex items-center gap-3">
+        <button onclick="window.print()" class="px-4 py-1.5 rounded-lg bg-slate-900 hover:bg-slate-800 text-slate-200 border border-slate-700 font-mono text-xs flex items-center gap-2 transition-all cursor-pointer shadow-sm">
+          <i data-lucide="printer" class="w-3.5 h-3.5"></i>
+          <span>Print / PDF Export</span>
+        </button>
+        <a href="https://github.com/Khani-Kingsman/PermissionDrift" target="_blank" class="px-4 py-1.5 rounded-lg bg-cyan-500/10 hover:bg-cyan-500/20 text-cyan-300 border border-cyan-500/30 font-mono text-xs flex items-center gap-2 transition-all shadow-sm">
+          <i data-lucide="github" class="w-3.5 h-3.5"></i>
+          <span>GitHub Repository</span>
+        </a>
+      </div>
+    </div>
+
+    <!-- Hero Header -->
+    <header class="mb-14">
+      <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-cyan-950/60 border border-cyan-800/50 text-cyan-400 font-mono text-xs mb-4 badge-glow">
+        <i data-lucide="shield-alert" class="w-3.5 h-3.5 text-cyan-400"></i>
+        <span>Local-First Developer Posture &amp; Privilege Drift Monitor</span>
+      </div>
+      <h1 class="text-4xl sm:text-6xl font-display font-bold tracking-tight text-white mb-4">
+        PermissionDrift
+      </h1>
+      <p class="text-lg sm:text-xl text-slate-300 font-normal leading-relaxed max-w-3xl mb-6">
+        A Windows-native developer security monitor that snapshots access to SSH keys, cloud configs, Docker pipes, listening sockets, and browser extensions — alerting on <strong class="text-white font-semibold">unannounced privilege drift</strong> over time with automated Google Gemini AI threat modeling.
+      </p>
+
+      <div class="p-4 rounded-xl border border-cyan-900/40 bg-cyan-950/20 flex items-start gap-3">
+        <i data-lucide="quote" class="w-5 h-5 text-cyan-400 flex-shrink-0 mt-0.5"></i>
+        <p class="font-mono text-xs sm:text-sm text-cyan-200/90 leading-relaxed italic">
+          "Your VSCode didn't have access to <code class="bg-black/40 px-1.5 py-0.5 rounded text-cyan-300">~/.aws</code> on Monday. It does now. Here's why that matters."
+        </p>
+      </div>
+    </header>
+
+    <!-- Key Metrics Grid -->
+    <section class="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-14">
+      <div class="p-5 rounded-2xl bg-[#0f1420] border border-slate-800/80 shadow-sm">
+        <div class="text-slate-400 text-xs font-mono mb-1 flex items-center gap-1.5">
+          <i data-lucide="activity" class="w-3.5 h-3.5 text-cyan-400"></i>
+          <span>BLAST RADIUS</span>
+        </div>
+        <div class="text-3xl font-display font-bold text-white">0 – 100</div>
+        <div class="text-[11px] text-slate-500 font-mono mt-1">Weighted risk score</div>
+      </div>
+
+      <div class="p-5 rounded-2xl bg-[#0f1420] border border-slate-800/80 shadow-sm">
+        <div class="text-slate-400 text-xs font-mono mb-1 flex items-center gap-1.5">
+          <i data-lucide="cpu" class="w-3.5 h-3.5 text-emerald-400"></i>
+          <span>SCAN TIME</span>
+        </div>
+        <div class="text-3xl font-display font-bold text-emerald-400">&lt; 10ms</div>
+        <div class="text-[11px] text-slate-500 font-mono mt-1">Async trigger / 10s budget</div>
+      </div>
+
+      <div class="p-5 rounded-2xl bg-[#0f1420] border border-slate-800/80 shadow-sm">
+        <div class="text-slate-400 text-xs font-mono mb-1 flex items-center gap-1.5">
+          <i data-lucide="lock" class="w-3.5 h-3.5 text-amber-400"></i>
+          <span>DATA COLLECTED</span>
+        </div>
+        <div class="text-3xl font-display font-bold text-amber-400">0 Secrets</div>
+        <div class="text-[11px] text-slate-500 font-mono mt-1">Metadata only, zero payload</div>
+      </div>
+
+      <div class="p-5 rounded-2xl bg-[#0f1420] border border-slate-800/80 shadow-sm">
+        <div class="text-slate-400 text-xs font-mono mb-1 flex items-center gap-1.5">
+          <i data-lucide="sparkles" class="w-3.5 h-3.5 text-cyan-400"></i>
+          <span>AI ENGINE</span>
+        </div>
+        <div class="text-3xl font-display font-bold text-cyan-400">Gemini</div>
+        <div class="text-[11px] text-slate-500 font-mono mt-1">3.6 &amp; 3.7 Flash models</div>
+      </div>
+    </section>
+
+    <!-- Core Value Proposition & Pillars -->
+    <section class="mb-14 space-y-6">
+      <h2 class="text-2xl font-display font-bold text-white flex items-center gap-2">
+        <i data-lucide="target" class="w-5 h-5 text-cyan-400"></i>
+        <span>Core Engineering Pillars</span>
+      </h2>
+
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <!-- Pillar 1 -->
+        <div class="p-6 rounded-2xl bg-[#0f1420] border border-slate-800 hover:border-slate-700 transition-all space-y-3">
+          <div class="w-10 h-10 rounded-xl bg-cyan-950/80 border border-cyan-800/60 flex items-center justify-center text-cyan-400">
+            <i data-lucide="shield-check" class="w-5 h-5"></i>
+          </div>
+          <h3 class="text-lg font-display font-semibold text-white">1. Strict Anti-Tamper &amp; Zero Secrets</h3>
+          <p class="text-xs text-slate-400 leading-relaxed">
+            Operates strictly via metadata and Win32 process handle enumeration. Never reads or parses contents inside <code class="text-slate-300 font-mono">~/.ssh</code>, <code class="text-slate-300 font-mono">~/.aws</code>, or tokens. Safe to run in production enterprise settings.
+          </p>
+        </div>
+
+        <!-- Pillar 2 -->
+        <div class="p-6 rounded-2xl bg-[#0f1420] border border-slate-800 hover:border-slate-700 transition-all space-y-3">
+          <div class="w-10 h-10 rounded-xl bg-emerald-950/80 border border-emerald-800/60 flex items-center justify-center text-emerald-400">
+            <i data-lucide="server" class="w-5 h-5"></i>
+          </div>
+          <h3 class="text-lg font-display font-semibold text-white">2. Local-First Architecture</h3>
+          <p class="text-xs text-slate-400 leading-relaxed">
+            Snapshots are stored in an append-only local SQLite database with 30-day auto-pruning. No telemetry is sent to third-party clouds unless explicitly requested by the user for Gemini AI analysis.
+          </p>
+        </div>
+
+        <!-- Pillar 3 -->
+        <div class="p-6 rounded-2xl bg-[#0f1420] border border-slate-800 hover:border-slate-700 transition-all space-y-3">
+          <div class="w-10 h-10 rounded-xl bg-amber-950/80 border border-amber-800/60 flex items-center justify-center text-amber-400">
+            <i data-lucide="sparkles" class="w-5 h-5"></i>
+          </div>
+          <h3 class="text-lg font-display font-semibold text-white">3. Deep Cyber-Forensic AI</h3>
+          <p class="text-xs text-slate-400 leading-relaxed">
+            Integrated with Google Gemini API (<code class="text-amber-300 font-mono">gemini-3.6-flash</code> / <code class="text-amber-300 font-mono">3.7-flash</code>) to synthesize plain-English risk assessments, process intentions, infostealer threat vectors, and copyable PowerShell fix commands.
+          </p>
+        </div>
+      </div>
+    </section>
+
+    <!-- Architecture & Features Breakdown -->
+    <section class="mb-14 space-y-6">
+      <h2 class="text-2xl font-display font-bold text-white flex items-center gap-2">
+        <i data-lucide="layers" class="w-5 h-5 text-cyan-400"></i>
+        <span>Full Feature Breakdown</span>
+      </h2>
+
+      <div class="space-y-4">
+        <!-- Feature 1 -->
+        <div class="p-5 rounded-2xl bg-[#0f1420] border border-slate-800 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+          <div class="space-y-1">
+            <div class="flex items-center gap-2">
+              <span class="font-mono text-xs font-bold text-cyan-400 bg-cyan-950 px-2 py-0.5 rounded border border-cyan-800/60">RADAR</span>
+              <h4 class="font-display font-bold text-white text-base">Passive IPC &amp; Socket Radar</h4>
+            </div>
+            <p class="text-xs text-slate-400 max-w-2xl">
+              Inspects local TCP sockets in <code class="text-slate-300 font-mono">LISTEN</code> state (e.g. unauthenticated Docker on port 2375, Ollama AI on port 11434, Kubernetes 6443, Redis, Postgres) passively via kernel connection tables with zero network overhead.
+            </p>
+          </div>
+          <span class="text-[11px] font-mono text-emerald-400 bg-emerald-950/40 border border-emerald-800 px-3 py-1 rounded-full flex-shrink-0">
+            Passive / Zero Packets
+          </span>
+        </div>
+
+        <!-- Feature 2 -->
+        <div class="p-5 rounded-2xl bg-[#0f1420] border border-slate-800 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+          <div class="space-y-1">
+            <div class="flex items-center gap-2">
+              <span class="font-mono text-xs font-bold text-emerald-400 bg-emerald-950 px-2 py-0.5 rounded border border-emerald-800/60">DIFF</span>
+              <h4 class="font-display font-bold text-white text-base">"Monday vs. Friday" Privilege Mutation Diff</h4>
+            </div>
+            <p class="text-xs text-slate-400 max-w-2xl">
+              A git-style differential tree showing your established clean baseline on the left versus active handles on the right. Highlights newly gained handles and widened permissions in high-contrast red.
+            </p>
+          </div>
+          <span class="text-[11px] font-mono text-cyan-400 bg-cyan-950/40 border border-cyan-800 px-3 py-1 rounded-full flex-shrink-0">
+            Interactive Collapsible Tree
+          </span>
+        </div>
+
+        <!-- Feature 3 -->
+        <div class="p-5 rounded-2xl bg-[#0f1420] border border-slate-800 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+          <div class="space-y-1">
+            <div class="flex items-center gap-2">
+              <span class="font-mono text-xs font-bold text-amber-400 bg-amber-950 px-2 py-0.5 rounded border border-amber-800/60">PROBE</span>
+              <h4 class="font-display font-bold text-white text-base">Opt-In Manual Port Deep Check</h4>
+            </div>
+            <p class="text-xs text-slate-400 max-w-2xl">
+              Strictly user-triggered verification that sends a 1-second connect probe strictly to <code class="text-slate-300 font-mono">127.0.0.1</code> to confirm if flagged ports accept unauthenticated commands. Never runs automatically.
+            </p>
+          </div>
+          <span class="text-[11px] font-mono text-amber-400 bg-amber-950/40 border border-amber-800 px-3 py-1 rounded-full flex-shrink-0">
+            Manual Opt-In Only
+          </span>
+        </div>
+
+        <!-- Feature 4 -->
+        <div class="p-5 rounded-2xl bg-[#0f1420] border border-slate-800 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+          <div class="space-y-1">
+            <div class="flex items-center gap-2">
+              <span class="font-mono text-xs font-bold text-purple-400 bg-purple-950 px-2 py-0.5 rounded border border-purple-800/60">AI CORE</span>
+              <h4 class="font-display font-bold text-white text-base">One-Click Gemini Forensic Analysis &amp; Remediation</h4>
+            </div>
+            <p class="text-xs text-slate-400 max-w-2xl">
+              Clicking "Re-Analyze with Gemini" generates an in-depth breakdown: software purpose, execution path, real infostealer / cloud takeover risks, defense-in-depth steps, and ready-to-run PowerShell commands.
+            </p>
+          </div>
+          <span class="text-[11px] font-mono text-purple-400 bg-purple-950/40 border border-purple-800 px-3 py-1 rounded-full flex-shrink-0">
+            Gemini 3.6 / 3.7 Flash
+          </span>
+        </div>
+      </div>
+    </section>
+
+    <!-- Real-World Forensic Case Study (As demonstrated live) -->
+    <section class="mb-14 space-y-6">
+      <h2 class="text-2xl font-display font-bold text-white flex items-center gap-2">
+        <i data-lucide="file-search" class="w-5 h-5 text-red-400"></i>
+        <span>Live Forensic Case Study: AWS Credential Drift</span>
+      </h2>
+
+      <div class="rounded-2xl border border-red-900/60 bg-[#120e17] p-6 space-y-5">
+        <div class="flex flex-wrap items-center justify-between gap-3 border-b border-red-900/40 pb-4">
+          <div class="flex items-center gap-2">
+            <span class="px-2.5 py-0.5 rounded-full text-xs font-bold font-mono bg-red-950 text-red-300 border border-red-800">CRITICAL</span>
+            <span class="font-mono text-xs text-slate-400">CREDENTIAL ACCESS DRIFT</span>
+          </div>
+          <span class="font-mono text-xs text-red-400">Observed State: initialized (perms: 777)</span>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 font-mono text-xs">
+          <div class="p-3.5 rounded-xl bg-black/40 border border-slate-800">
+            <span class="text-slate-500 block mb-1 uppercase tracking-wider text-[10px]">Resource Target</span>
+            <span class="text-cyan-300 font-bold">C:\Users\solob\.aws</span>
+          </div>
+          <div class="p-3.5 rounded-xl bg-black/40 border border-slate-800">
+            <span class="text-slate-500 block mb-1 uppercase tracking-wider text-[10px]">Accessor / Trigger</span>
+            <span class="text-slate-200">Filesystem / AWS CLI Initialization</span>
+          </div>
+        </div>
+
+        <!-- AI Output Simulation -->
+        <div class="space-y-3 font-sans text-xs pt-2">
+          <div class="p-4 rounded-xl bg-slate-900/90 border border-slate-800 space-y-2">
+            <div class="font-mono text-[11px] font-semibold text-cyan-400 flex items-center gap-1.5">
+              <i data-lucide="info" class="w-3.5 h-3.5"></i>
+              <span>1. What This Program / Resource Is</span>
+            </div>
+            <p class="text-slate-300 leading-relaxed">
+              Stores plaintext credentials (<code class="text-cyan-300 font-mono">aws_access_key_id</code> and <code class="text-cyan-300 font-mono">aws_secret_access_key</code>), config profiles, and session tokens utilized by the AWS CLI, boto3, Terraform, and IDE cloud plugins.
+            </p>
+          </div>
+
+          <div class="p-4 rounded-xl bg-red-950/30 border border-red-900/50 space-y-2">
+            <div class="font-mono text-[11px] font-semibold text-red-400 flex items-center gap-1.5">
+              <i data-lucide="alert-triangle" class="w-3.5 h-3.5"></i>
+              <span>2. Real-World Security Impact</span>
+            </div>
+            <p class="text-red-200/90 leading-relaxed">
+              Targeted by infostealers (RedLine, Lumma, Vidar). Broad Windows permissions allow malicious packages or background processes to exfiltrate keys, leading to cloud infrastructure hijacking, S3 data exfiltration, or rogue IAM backdoor creation.
+            </p>
+          </div>
+
+          <div class="p-4 rounded-xl bg-black/60 border border-emerald-900/50 space-y-2">
+            <div class="font-mono text-[11px] font-semibold text-emerald-400 flex items-center gap-1.5">
+              <i data-lucide="terminal" class="w-3.5 h-3.5"></i>
+              <span>3. Automated Remediation Command (Provided by Gemini)</span>
+            </div>
+            <pre class="bg-black text-emerald-300 p-3 rounded-lg font-mono text-xs overflow-x-auto whitespace-pre-wrap border border-emerald-950"># Lock ACLs to current user only &amp; strip broad group permissions:
+icacls "C:\Users\solob\.aws" /inheritance:r /grant:r "solob:(OI)(CI)F"
+icacls "C:\Users\solob\.aws" /remove "NT AUTHORITY\Authenticated Users" /remove "Everyone"</pre>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Technical Architecture Stack -->
+    <section class="mb-14 space-y-6">
+      <h2 class="text-2xl font-display font-bold text-white flex items-center gap-2">
+        <i data-lucide="code" class="w-5 h-5 text-cyan-400"></i>
+        <span>Technical Architecture &amp; Stack</span>
+      </h2>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-6 font-mono text-xs">
+        <div class="p-5 rounded-2xl bg-[#0f1420] border border-slate-800 space-y-3">
+          <h4 class="font-display font-bold text-cyan-400 text-sm flex items-center gap-2">
+            <i data-lucide="cpu" class="w-4 h-4"></i> Backend Core (Python 3.14)
+          </h4>
+          <ul class="space-y-2 text-slate-300">
+            <li>• <strong class="text-white">Scanner:</strong> <code class="text-cyan-300">WindowsSecurityScanner</code> (Win32 API handle inspection, psutil net connections, 10s budget).</li>
+            <li>• <strong class="text-white">Engine:</strong> Risk rules engine with customizable <code class="text-cyan-300">risk_rules.json</code> and heuristic cross-workspace detection.</li>
+            <li>• <strong class="text-white">Storage:</strong> Embedded append-only SQLite (<code class="text-cyan-300">snapshots.db</code>) with automated 30-day retention pruning.</li>
+            <li>• <strong class="text-white">API Layer:</strong> Flask 3.1 REST API with async background thread jobs and response times under 100ms.</li>
+            <li>• <strong class="text-white">AI Analyzer:</strong> Google GenAI SDK (<code class="text-cyan-300">google-genai</code>) with zero-latency thinking budget overrides.</li>
+          </ul>
+        </div>
+
+        <div class="p-5 rounded-2xl bg-[#0f1420] border border-slate-800 space-y-3">
+          <h4 class="font-display font-bold text-emerald-400 text-sm flex items-center gap-2">
+            <i data-lucide="layout" class="w-4 h-4"></i> Frontend (Vite 8 &amp; React 19)
+          </h4>
+          <ul class="space-y-2 text-slate-300">
+            <li>• <strong class="text-white">Type Safety:</strong> Strict TypeScript implementation (<code class="text-emerald-300">src/types/drift.ts</code>).</li>
+            <li>• <strong class="text-white">3D Aesthetics:</strong> Three.js interactive Torus Knot wireframe background with particle sparks &amp; mouse lerping.</li>
+            <li>• <strong class="text-white">Styling:</strong> High-contrast industrial design system powered by Tailwind CSS v4.</li>
+            <li>• <strong class="text-white">Visuals:</strong> SVG Blast Radius arc gauge, canvas historical sparklines, and expandable diff cards.</li>
+            <li>• <strong class="text-white">Modals:</strong> Opt-in active port probe modal and Gemini AI posture assessment reports.</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <!-- How to Run & Verify -->
+    <section class="mb-14 space-y-6">
+      <h2 class="text-2xl font-display font-bold text-white flex items-center gap-2">
+        <i data-lucide="play" class="w-5 h-5 text-emerald-400"></i>
+        <span>How to Run &amp; Verify</span>
+      </h2>
+
+      <div class="p-6 rounded-2xl bg-[#0f1420] border border-slate-800 space-y-4 font-mono text-xs">
+        <div>
+          <span class="text-slate-400 block mb-1 text-[11px]">1. Start the Local Web &amp; API Server:</span>
+          <pre class="bg-black text-cyan-300 p-3 rounded-lg border border-slate-800 overflow-x-auto">python backend\app.py
+# Open http://127.0.0.1:5000 in your browser</pre>
+        </div>
+
+        <div>
+          <span class="text-slate-400 block mb-1 text-[11px]">2. Run via Standalone Git-Style CLI:</span>
+          <pre class="bg-black text-emerald-300 p-3 rounded-lg border border-slate-800 overflow-x-auto">python cli.py scan --baseline   # Set initial clean state
+python cli.py diff              # Output color-coded terminal drift</pre>
+        </div>
+
+        <div>
+          <span class="text-slate-400 block mb-1 text-[11px]">3. Configure Optional Gemini AI Threat Analysis:</span>
+          <pre class="bg-black text-amber-300 p-3 rounded-lg border border-slate-800 overflow-x-auto"># Set in PowerShell or save in local .env file (strictly git-ignored):
+$env:GEMINI_API_KEY="your_api_key_here"</pre>
+        </div>
+
+        <div>
+          <span class="text-slate-400 block mb-1 text-[11px]">4. Automated Background Scans (Windows Task Scheduler):</span>
+          <pre class="bg-black text-slate-300 p-3 rounded-lg border border-slate-800 overflow-x-auto">powershell -ExecutionPolicy Bypass -File .\scripts\schedule_task.ps1 -Action Install -IntervalMinutes 30</pre>
+        </div>
+      </div>
+    </section>
+
+    <!-- Footer Signoff -->
+    <footer class="border-t border-slate-800 pt-8 pb-12 flex flex-col sm:flex-row items-center justify-between gap-4 font-mono text-xs text-slate-500">
+      <div class="flex items-center gap-2">
+        <i data-lucide="shield-alert" class="w-4 h-4 text-cyan-400"></i>
+        <strong class="text-white">PermissionDrift</strong> — Engineering Brief &amp; Architecture Summary
+      </div>
+      <div>
+        <span>Author: <strong class="text-slate-300">Hamza Ali</strong></span>
+        <span class="mx-2">·</span>
+        <span>Version 1.2.0 (Win32)</span>
+        <span class="mx-2">·</span>
+        <span>© 2026</span>
+      </div>
+    </footer>
+
+  </div>
+
+  <!-- Initialize Lucide Icons -->
+  <script>
+    lucide.createIcons();
+  </script>
+</body>
+</html>
