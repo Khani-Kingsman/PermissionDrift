@@ -286,6 +286,102 @@ def generate_report_ai():
     return jsonify(result)
 
 
+# ── Background Security Engine & Autostart Controls ──────────────────────────
+@app.route("/api/engine/status", methods=["GET"])
+@app.route("/engine/status", methods=["GET"])
+def get_engine_status():
+    from backend.engine import engine
+    return jsonify(engine.get_status())
+
+
+@app.route("/api/engine/toggle", methods=["POST"])
+@app.route("/engine/toggle", methods=["POST"])
+def toggle_engine():
+    from backend.engine import engine
+    data = request.get_json(silent=True) or {}
+    action = data.get("action")  # "start", "stop", or "toggle"
+    interval = data.get("interval_sec", 300)
+
+    if action == "start" or (action == "toggle" and not engine.is_running):
+        engine.start(interval_sec=interval)
+    elif action == "stop" or (action == "toggle" and engine.is_running):
+        engine.stop()
+
+    return jsonify(engine.get_status())
+
+
+@app.route("/api/engine/autostart", methods=["POST"])
+@app.route("/engine/autostart", methods=["POST"])
+def toggle_autostart():
+    from backend.autostart import set_autostart, is_autostart_enabled
+    data = request.get_json(silent=True) or {}
+    enable = data.get("enabled", not is_autostart_enabled())
+    res = set_autostart(bool(enable))
+    return jsonify(res)
+
+
+@app.route("/api/engine/test-notification", methods=["POST"])
+@app.route("/engine/test-notification", methods=["POST"])
+def test_notification():
+    from backend.notifier import notify_drift_event
+    notify_drift_event(
+        "🛡️ PermissionDrift Alert Test",
+        "Windows Desktop notifications are active! Drift events will alert you here."
+    )
+    return jsonify({"success": True, "message": "Notification dispatched to Windows desktop."})
+
+
+@app.route("/api/engine/scan-now", methods=["POST"])
+@app.route("/engine/scan-now", methods=["POST"])
+def engine_scan_now():
+    from backend.engine import engine
+    res = engine.run_single_cycle()
+    return jsonify(res)
+
+
+# ── Absolute Security: Rogue Process Quarantine ─────────────────────────────
+SYSTEM_CRITICAL_PROCESSES = {
+    "system", "system idle process", "registry", "smss.exe", "csrss.exe",
+    "wininit.exe", "services.exe", "lsass.exe", "winlogon.exe", "explorer.exe"
+}
+
+@app.route("/api/process/terminate", methods=["POST"])
+@app.route("/process/terminate", methods=["POST"])
+def terminate_rogue_process():
+    """Quarantines/terminates a rogue process holding unauthorized credential handles."""
+    import psutil
+    data = request.get_json(silent=True) or {}
+    pid = data.get("pid")
+    process_name = (data.get("process_name") or "").lower()
+
+    if not pid:
+        return jsonify({"error": "PID is required"}), 400
+
+    if pid == os.getpid() or process_name in SYSTEM_CRITICAL_PROCESSES:
+        return jsonify({"error": "Refusing to terminate critical system or engine process"}), 403
+
+    try:
+        proc = psutil.Process(pid)
+        real_name = proc.name().lower()
+        if real_name in SYSTEM_CRITICAL_PROCESSES:
+            return jsonify({"error": "Refusing to terminate critical system process"}), 403
+
+        proc.terminate()
+        try:
+            proc.wait(timeout=2)
+        except psutil.TimeoutExpired:
+            proc.kill()
+
+        return jsonify({
+            "success": True,
+            "message": f"Process '{real_name}' (PID {pid}) quarantined and terminated successfully."
+        })
+    except psutil.NoSuchProcess:
+        return jsonify({"success": True, "message": f"Process (PID {pid}) has already exited."})
+    except Exception as e:
+        return jsonify({"error": f"Failed to terminate PID {pid}: {str(e)}"}), 500
+
+
 @app.route("/api/health", methods=["GET"])
 def health_check():
     return jsonify({"status": "ok", "service": "PermissionDrift"})

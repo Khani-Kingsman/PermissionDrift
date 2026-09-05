@@ -90,6 +90,67 @@ export async function apiGetAIReport(snapshotId?: string, apiKey?: string): Prom
   return res.json();
 }
 
+// ── Background Security Engine & Windows Autostart ─────────────────────────
+export interface EngineStatus {
+  running: boolean;
+  interval_sec: number;
+  last_scan_time: number | null;
+  last_blast_radius: number;
+  scan_count: number;
+  notifications_enabled: boolean;
+  autostart_enabled: boolean;
+  recent_alerts: {
+    timestamp: number;
+    title: string;
+    body: string;
+    blast_radius: number;
+    event_count: number;
+  }[];
+}
+
+export async function apiGetEngineStatus(): Promise<EngineStatus> {
+  const res = await fetch('/api/engine/status');
+  if (!res.ok) throw new Error('Failed to fetch engine status');
+  return res.json();
+}
+
+export async function apiToggleEngine(action?: 'start' | 'stop' | 'toggle', intervalSec?: number): Promise<EngineStatus> {
+  const res = await fetch('/api/engine/toggle', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ action: action ?? 'toggle', interval_sec: intervalSec }),
+  });
+  if (!res.ok) throw new Error('Failed to toggle engine');
+  return res.json();
+}
+
+export async function apiToggleAutostart(enabled?: boolean): Promise<{ success: boolean; enabled: boolean; error?: string }> {
+  const res = await fetch('/api/engine/autostart', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ enabled }),
+  });
+  if (!res.ok) throw new Error('Failed to toggle autostart');
+  return res.json();
+}
+
+export async function apiTestNotification(): Promise<{ success: boolean; message: string }> {
+  const res = await fetch('/api/engine/test-notification', { method: 'POST' });
+  if (!res.ok) throw new Error('Failed to trigger test notification');
+  return res.json();
+}
+
+export async function apiTerminateProcess(pid: number, processName?: string): Promise<{ success: boolean; message: string }> {
+  const res = await fetch('/api/process/terminate', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ pid, process_name: processName }),
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error || 'Failed to terminate process');
+  return data;
+}
+
 // ── Snapshot → TreeItem adapter ───────────────────────────────────────────────
 export function snapshotToTrees(baseline: FullSnapshot | null, current: FullSnapshot | null): {
   baselineTree: TreeItem[];

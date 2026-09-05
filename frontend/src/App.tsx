@@ -6,6 +6,7 @@ import { DriftFeed } from './components/DriftFeed';
 import { SurfaceRadar } from './components/SurfaceRadar';
 import { DeepCheckModal } from './components/DeepCheckModal';
 import { AIReportModal } from './components/AIReportModal';
+import { EngineControlModal } from './components/EngineControlModal';
 import logoDark from './assets/logo-dark.png';
 import logoLight from './assets/logo-light.png';
 import {
@@ -16,6 +17,8 @@ import {
   apiGetDrift,
   apiSetBaseline,
   snapshotToTrees,
+  apiGetEngineStatus,
+  type EngineStatus,
 } from './lib/api';
 import type {
   SnapshotSummary,
@@ -81,6 +84,8 @@ export default function App() {
   const [scanProgress, setScanProgress] = useState(0);
   const [deepCheckOpen, setDeepCheckOpen] = useState(false);
   const [aiModalOpen, setAiModalOpen] = useState(false);
+  const [engineModalOpen, setEngineModalOpen] = useState(false);
+  const [engineStatus, setEngineStatus] = useState<EngineStatus | null>(null);
   const [error, setError] = useState('');
   const [host, setHost] = useState('');
   const [lastScanAt, setLastScanAt] = useState<string | null>(null);
@@ -96,8 +101,18 @@ export default function App() {
     document.documentElement.classList.toggle('dark', theme === 'black');
   }, [theme]);
 
+  const loadEngineStatus = useCallback(async () => {
+    try {
+      const st = await apiGetEngineStatus();
+      setEngineStatus(st);
+    } catch {
+      /* ignore if not yet available */
+    }
+  }, []);
+
   const loadAll = useCallback(async () => {
     try {
+      loadEngineStatus();
       const { snapshots: list } = await apiGetSnapshots();
       setSnapshots(list);
       if (list.length) {
@@ -133,11 +148,13 @@ export default function App() {
     } catch {
       setError('Could not reach API — is the Flask server running?');
     }
-  }, [driftScore]);
+  }, [driftScore, loadEngineStatus]);
 
   useEffect(() => {
     loadAll();
-  }, [loadAll]);
+    const interval = setInterval(loadEngineStatus, 8000);
+    return () => clearInterval(interval);
+  }, [loadAll, loadEngineStatus]);
 
   useEffect(() => {
     const { baselineTree: bt, currentTree: ct } = snapshotToTrees(baselineSnap, currentSnap);
@@ -296,6 +313,24 @@ export default function App() {
             </div>
 
             <button
+              onClick={() => setEngineModalOpen(true)}
+              className={`px-3 py-1.5 rounded-lg border font-geist-mono text-xs flex items-center gap-2 transition-all cursor-pointer shadow-sm font-medium ${
+                engineStatus?.running
+                  ? isBlack
+                    ? 'border-emerald-500/40 bg-emerald-950/40 text-emerald-300 hover:bg-emerald-900/50'
+                    : 'border-emerald-300 bg-emerald-50 text-emerald-800 hover:bg-emerald-100/70'
+                  : isBlack
+                  ? 'border-neutral-700 bg-neutral-900/80 text-neutral-300 hover:text-white hover:bg-neutral-800'
+                  : 'border-neutral-300 bg-white text-neutral-700 hover:text-black hover:bg-neutral-50'
+              }`}
+              title="Background Security Engine & Windows Boot Autostart"
+            >
+              <span className={`w-2 h-2 rounded-full ${engineStatus?.running ? 'bg-emerald-500 animate-pulse' : 'bg-neutral-500'}`} />
+              <Shield className="w-3.5 h-3.5" />
+              <span>{engineStatus?.running ? 'Engine Active' : 'Start Engine'}</span>
+            </button>
+
+            <button
               onClick={() => setAiModalOpen(true)}
               className={`px-3.5 py-1.5 rounded-lg border font-geist-mono text-xs flex items-center gap-2 transition-all cursor-pointer shadow-sm font-medium ${
                 isBlack
@@ -408,6 +443,19 @@ export default function App() {
                 }`}
               >
                 Run Scan Now →
+              </button>
+              <button
+                onClick={() => setEngineModalOpen(true)}
+                className={`inline-flex items-center gap-1.5 text-xs font-geist-mono uppercase tracking-wider font-semibold transition-colors cursor-pointer ${
+                  engineStatus?.running
+                    ? 'text-emerald-500 hover:text-emerald-400'
+                    : isBlack
+                    ? 'text-neutral-400 hover:text-neutral-200'
+                    : 'text-neutral-600 hover:text-neutral-900'
+                }`}
+              >
+                <Shield className="w-3.5 h-3.5" />
+                <span>{engineStatus?.running ? '● Engine Running' : '⚙️ Setup Autostart →'}</span>
               </button>
             </div>
           </div>
@@ -611,6 +659,15 @@ export default function App() {
         isOpen={aiModalOpen}
         onClose={() => setAiModalOpen(false)}
         snapshotId={selectedId}
+        theme={theme}
+      />
+
+      {/* Background Security Engine & Windows Autostart Modal */}
+      <EngineControlModal
+        isOpen={engineModalOpen}
+        onClose={() => setEngineModalOpen(false)}
+        status={engineStatus}
+        onStatusChange={setEngineStatus}
         theme={theme}
       />
     </div>
