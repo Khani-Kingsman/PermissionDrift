@@ -1,6 +1,6 @@
 import unittest
 from backend.engine import SecurityEngine
-from backend.autostart import is_autostart_enabled, get_launch_command
+from backend.autostart import is_autostart_enabled
 
 class TestEngine(unittest.TestCase):
     def setUp(self):
@@ -15,10 +15,8 @@ class TestEngine(unittest.TestCase):
         self.assertIn("autostart_enabled", status)
         self.assertIn("notifications_enabled", status)
 
-    def test_autostart_command_valid(self):
-        cmd = get_launch_command()
-        self.assertTrue(len(cmd) > 0)
-        self.assertTrue("PermissionDrift" in cmd or "python" in cmd)
+    def test_autostart_permanently_disabled(self):
+        self.assertFalse(is_autostart_enabled())
 
 if __name__ == "__main__":
     unittest.main()
